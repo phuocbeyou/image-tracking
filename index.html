@@ -107,13 +107,13 @@
         /* Loading overlay */
         .loading-overlay {
             position: fixed;
-            bottom: calc(env(safe-area-inset-bottom, 15px) + 20px);
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
             background: rgba(0, 0, 0, 0.95);
             color: white;
-            padding: 15px 20px;
-            border-radius: 15px;
+            padding: 25px;
+            border-radius: 20px;
             text-align: center;
             z-index: 15;
             backdrop-filter: blur(15px);
@@ -124,21 +124,31 @@
         }
 
         .spinner {
-            width: 30px;
-            height: 30px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid #4CAF50;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #4CAF50;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .progress-bar {
-            width: 150px;
-            height: 3px;
+            width: 200px;
+            height: 4px;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 2px;
-            margin: 10px auto 8px;
+            margin: 15px auto 10px;
             overflow: hidden;
         }
 
@@ -773,7 +783,6 @@
 
                 if (Array.isArray(data) && data.length > 0) {
                     artifactData = data;
-                    elements.dataStatus.textContent = `${data.length} items`;
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
 
@@ -899,7 +908,7 @@
 
                 // Show loading overlay
                 elements.loadingOverlay.style.display = 'block';
-                updateProgress(0, `Tải model ${modelIndex}...`);
+                updateProgress(0, `Đang tải model tối ưu ${modelIndex}...`);
 
                 // URL validation (can be skipped)
                 if (!skipValidation) {
@@ -928,7 +937,7 @@
                         timestampedUrl,
                         (gltf) => {
                             clearTimeout(loadingTimeout);
-                            updateProgress(90, "Hoàn tất...");
+                            updateProgress(90, "Thiết lập tối ưu...");
 
                             console.log(`✅ Optimized Model ${modelIndex} loaded successfully`);
 
@@ -1014,7 +1023,7 @@
                                 hasAnimations: gltf.animations && gltf.animations.length > 0
                             };
 
-                            updateProgress(100, "Xong!");
+                            updateProgress(100, "Hoàn thành tối ưu!");
 
                             console.log(`🎉 Optimized Model ${modelIndex} ready for FREE ROTATION display`);
                             resolve(model);
@@ -1262,14 +1271,6 @@
                                     anchor.group.add(model);
                                     isModelLoaded = true;
                                     console.log(`✅ Optimized model ${i} loaded and added to scene with FREE ROTATION`);
-
-                                    // Auto play audio after model loads
-                                    setTimeout(() => {
-                                        if (modelData.audioUrl && elements.audioButton.style.display === 'flex') {
-                                            console.log('🎵 Auto-playing audio after model load');
-                                            playAudio();
-                                        }
-                                    }, 500);
                                 }
                             } catch (error) {
                                 console.error(`❌ Failed to load optimized model ${i}:`, error);
