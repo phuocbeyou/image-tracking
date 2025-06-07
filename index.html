@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-    <title>AR Audio Scanner</title>
+    <title>AR Audio Scanner - Enhanced</title>
     <script type="importmap">
   {
     "imports": {
@@ -41,34 +41,41 @@
             will-change: transform;
         }
 
-        /* Status indicator */
+        /* Enhanced status indicators */
         .status-dot {
             position: fixed;
             top: env(safe-area-inset-top, 15px);
             right: 15px;
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
             background: #4CAF50;
             z-index: 10;
-            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+            box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
             animation: pulse 2s infinite;
         }
 
         .status-dot.loading {
             background: #FFC107;
-            box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+            box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
+            animation: loadingPulse 1s infinite;
+        }
+
+        .status-dot.blocked {
+            background: #FF5722;
+            box-shadow: 0 0 12px rgba(255, 87, 34, 0.6);
+            animation: blockedFlash 0.5s infinite;
         }
 
         .status-dot.error {
             background: #f44336;
-            box-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
+            box-shadow: 0 0 12px rgba(244, 67, 54, 0.6);
             animation: none;
         }
 
         .status-dot.waiting {
             background: #9E9E9E;
-            box-shadow: 0 0 8px rgba(158, 158, 158, 0.5);
+            box-shadow: 0 0 12px rgba(158, 158, 158, 0.6);
             animation: none;
         }
 
@@ -80,7 +87,7 @@
 
             50% {
                 opacity: 0.7;
-                transform: scale(1.1);
+                transform: scale(1.2);
             }
 
             100% {
@@ -89,72 +96,59 @@
             }
         }
 
-        /* Audio button */
-        .audio-button {
-            position: fixed;
-            top: env(safe-area-inset-top, 15px);
-            left: 15px;
-            width: 50px;
-            height: 50px;
-            border-radius: 25px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            font-size: 20px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            transition: all 0.2s ease;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .audio-button.playing {
-            background: rgba(76, 175, 80, 0.9);
-            border-color: rgba(76, 175, 80, 0.5);
-            animation: audioPlaying 2s infinite;
-        }
-
-        @keyframes audioPlaying {
+        @keyframes loadingPulse {
 
             0%,
             100% {
-                box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
+                opacity: 1;
+                transform: scale(1);
             }
 
             50% {
-                box-shadow: 0 4px 16px rgba(76, 175, 80, 0.6);
+                opacity: 0.5;
+                transform: scale(1.3);
             }
         }
 
-        /* Loading overlay */
+        @keyframes blockedFlash {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        /* Enhanced loading overlay */
         .loading-overlay {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             color: white;
-            padding: 20px;
-            border-radius: 15px;
+            padding: 25px;
+            border-radius: 20px;
             text-align: center;
             z-index: 15;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
             display: none;
-            max-width: 80vw;
+            max-width: 85vw;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
         .spinner {
-            width: 30px;
-            height: 30px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid #4CAF50;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #4CAF50;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            margin: 0 auto 15px;
         }
 
         @keyframes spin {
@@ -168,11 +162,11 @@
         }
 
         .progress-bar {
-            width: 150px;
-            height: 3px;
+            width: 200px;
+            height: 4px;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 2px;
-            margin: 10px auto 8px;
+            margin: 15px auto 10px;
             overflow: hidden;
         }
 
@@ -180,37 +174,143 @@
             height: 100%;
             background: linear-gradient(90deg, #4CAF50, #45a049);
             width: 0%;
-            transition: width 0.2s ease;
+            transition: width 0.3s ease;
             border-radius: 2px;
         }
 
-        /* Model info */
+        /* Enhanced model info */
         .model-info {
             position: fixed;
             top: calc(env(safe-area-inset-top, 15px) + 70px);
             left: 15px;
-            max-width: 300px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 12px;
+            max-width: 320px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 15px;
             z-index: 8;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             display: none;
             color: white;
-            max-height: 30vh;
+            max-height: 35vh;
             overflow-y: auto;
             transform: translateY(0);
-            transition: transform 0.3s ease, opacity 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             opacity: 1;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
         .model-info.hidden {
-            transform: translateY(-10px);
+            transform: translateY(-15px);
             opacity: 0;
         }
 
-        /* Audio controls */
+        /* Enhanced audio controls */
+        .audio-button {
+            position: fixed;
+            top: env(safe-area-inset-top, 15px);
+            left: 15px;
+            width: 55px;
+            height: 55px;
+            border-radius: 27.5px;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            font-size: 22px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .audio-button.playing {
+            background: rgba(76, 175, 80, 0.9);
+            border-color: rgba(76, 175, 80, 0.7);
+            animation: audioPlaying 2s infinite;
+            transform: scale(1.05);
+        }
+
+        @keyframes audioPlaying {
+
+            0%,
+            100% {
+                box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 5px 25px rgba(76, 175, 80, 0.7);
+            }
+        }
+
+        /* Enhanced rotation quality indicator */
+        .rotation-indicator {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 15px) + 70px);
+            right: 15px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: none;
+            animation: rotationActive 3s infinite;
+        }
+
+        @keyframes rotationActive {
+
+            0%,
+            100% {
+                opacity: 0.8;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* Loading blocked indicator */
+        .loading-blocked {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 87, 34, 0.95);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 16;
+            backdrop-filter: blur(10px);
+            display: none;
+            max-width: 80vw;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) translateX(0);
+            }
+
+            25% {
+                transform: translate(-50%, -50%) translateX(-5px);
+            }
+
+            75% {
+                transform: translate(-50%, -50%) translateX(5px);
+            }
+        }
+
+        /* Rest of the existing styles remain the same */
         .audio-controls {
             position: fixed;
             bottom: calc(env(safe-area-inset-bottom, 15px) + 120px);
@@ -244,7 +344,6 @@
             border-radius: 2px;
         }
 
-        /* Error message */
         .error-message {
             position: fixed;
             top: 50%;
@@ -280,7 +379,6 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Track info */
         .track-info {
             position: fixed;
             top: calc(env(safe-area-inset-top, 15px) + 60px);
@@ -300,7 +398,6 @@
             text-overflow: ellipsis;
         }
 
-        /* Waiting message */
         .waiting-message {
             position: fixed;
             top: 50%;
@@ -335,7 +432,6 @@
             line-height: 1.4;
         }
 
-        /* Data status */
         .data-status {
             position: fixed;
             top: calc(env(safe-area-inset-top, 15px) + 60px);
@@ -354,9 +450,100 @@
             text-overflow: ellipsis;
         }
 
+        .debug-panel {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 15px) + 100px);
+            left: 10px;
+            right: 10px;
+            max-height: 50vh;
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            z-index: 12;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            overflow-y: auto;
+            font-size: 11px;
+        }
+
+        .debug-header {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #4CAF50;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 4px;
+        }
+
+        .debug-item {
+            margin-bottom: 6px;
+            font-size: 10px;
+        }
+
+        .debug-label {
+            color: #FFC107;
+            font-weight: bold;
+        }
+
+        .debug-value {
+            color: #fff;
+            word-break: break-all;
+        }
+
+        .debug-toggle {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 15px) + 100px);
+            right: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 5px;
+            font-size: 10px;
+            cursor: pointer;
+            z-index: 13;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .performance-controls {
+            position: fixed;
+            bottom: calc(env(safe-area-inset-bottom, 15px) + 180px);
+            left: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px;
+            border-radius: 6px;
+            z-index: 11;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            font-size: 11px;
+        }
+
+        .control-item {
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .control-label {
+            font-size: 11px;
+        }
+
+        .control-checkbox {
+            width: 14px;
+            height: 14px;
+        }
+
         /* Performance optimizations */
         .model-info,
-        .audio-controls {
+        .audio-controls,
+        .debug-panel,
+        .performance-controls {
             -webkit-overflow-scrolling: touch;
         }
 
@@ -389,7 +576,109 @@
     <div class="audio-button" id="audioButton">🔊</div>
     <div class="track-info" id="trackInfo">Scanning...</div>
     <div class="data-status" id="dataStatus">Waiting...</div>
+    <div class="rotation-indicator" id="rotationIndicator">🔄 Auto Rotate</div>
+    <button class="debug-toggle" id="debugToggle">🔧</button>
     <div id="container"></div>
+
+    <!-- Loading Blocked Indicator -->
+    <div class="loading-blocked" id="loadingBlocked">
+        <div style="font-size: 24px; margin-bottom: 8px;">🚫</div>
+        <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">Đang tải model khác</div>
+        <div style="font-size: 12px; opacity: 0.9;">Vui lòng đợi model hiện tại tải xong</div>
+    </div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <div class="debug-header">📊 Debug Info - Enhanced</div>
+        <div id="debugContent">
+            <div class="debug-item">
+                <span class="debug-label">Status:</span>
+                <span class="debug-value" id="debugStatus">Waiting...</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Loading State:</span>
+                <span class="debug-value" id="debugLoadingState">Idle</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Artifacts:</span>
+                <span class="debug-value" id="debugArtifactCount">0</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">AR:</span>
+                <span class="debug-value" id="debugARStatus">No</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Track:</span>
+                <span class="debug-value" id="debugCurrentTrack">None</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Model:</span>
+                <span class="debug-value" id="debugModelStatus">No</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Auto Rotation:</span>
+                <span class="debug-value" id="debugRotationStatus">Enabled</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Rotation Speed:</span>
+                <span class="debug-value" id="debugRotationSpeed">0.000</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Memory:</span>
+                <span class="debug-value" id="debugMemory">0MB</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">FPS:</span>
+                <span class="debug-value" id="debugFPS">0</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Last URL:</span>
+                <span class="debug-value" id="debugLastUrl">None</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Load Status:</span>
+                <span class="debug-value" id="debugLoadStatus">None</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Blocked Attempts:</span>
+                <span class="debug-value" id="debugBlockedAttempts">0</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Queue:</span>
+                <span class="debug-value" id="debugQueue">Empty</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Data:</span>
+                <div class="debug-value" id="debugLastData"
+                    style="max-height: 100px; overflow-y: auto; font-size: 9px; margin-top: 3px; background: rgba(255,255,255,0.1); padding: 4px; border-radius: 3px;">
+                    No data</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Controls -->
+    <div class="performance-controls" id="performanceControls">
+        <div class="control-item">
+            <input type="checkbox" id="enableRotation" class="control-checkbox" checked>
+            <label for="enableRotation" class="control-label">Auto Rotation (Enhanced)</label>
+        </div>
+        <div class="control-item">
+            <input type="checkbox" id="enableAnimations" class="control-checkbox" checked>
+            <label for="enableAnimations" class="control-label">Model Animations</label>
+        </div>
+        <div class="control-item">
+            <input type="checkbox" id="highQuality" class="control-checkbox" checked>
+            <label for="highQuality" class="control-label">High Quality Rendering</label>
+        </div>
+        <div class="control-item">
+            <input type="checkbox" id="skipValidation" class="control-checkbox">
+            <label for="skipValidation" class="control-label">Skip URL Validation</label>
+        </div>
+        <div class="control-item">
+            <input type="checkbox" id="strictLoading" class="control-checkbox" checked>
+            <label for="strictLoading" class="control-label">Strict Loading (Block Concurrent)</label>
+        </div>
+    </div>
 
     <!-- Waiting Message -->
     <div class="waiting-message" id="waitingMessage">
@@ -402,7 +691,7 @@
 
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
-        <div id="loadingText">Đang tải...</div>
+        <div id="loadingText">Đang tải model chất lượng cao...</div>
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
@@ -442,35 +731,49 @@
         import { MindARThree } from 'mindar-image-three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        // Core variables
-        let mindarThree = null;
-        let mixer = null;
-        let isModelLoaded = false;
-        let targetFound = false;
-        let audioPlayer = null;
-        let isAudioPlaying = false;
+        // Enhanced variables with strict loading control
+        let mindarThree = null, mixer = null, isModelLoaded = false, targetFound = false, audioPlayer = null, isAudioPlaying = false;
         let anchors = [];
         let currentTrackIndex = -1;
         let artifactData = [];
+        let currentArtifact = null;
         let isARInitialized = false;
         let loadingTimeout = null;
 
-        // Memory management
+        // STRICT LOADING CONTROL - Enhanced
+        let isCurrentlyLoading = false;
+        let currentLoadingModelIndex = -1;
+        let loadingStartTime = 0;
+        let blockedAttempts = 0;
+        let loadingPromise = null;
+
+        // Enhanced Memory Management
         let modelCache = new Map();
         let activeModels = new Map();
+        let urlValidationCache = new Map();
 
-        // Performance settings
+        // Enhanced Performance settings
         let enableRotation = true;
         let enableAnimations = true;
-        let lowQuality = false;
+        let highQuality = true;
+        let skipValidation = false;
+        let strictLoading = true;
         let fpsCounter = 0;
-        let frameSkip = 0;
+        let lastTime = performance.now();
 
-        // Rotation system
+        // ENHANCED SMOOTH ROTATION SYSTEM - Higher Quality
         let rotationSpeed = 0;
-        let targetRotationSpeed = 0.015;
-        let rotationDamping = 0.985;
-        let rotationEasing = 0.1;
+        let targetRotationSpeed = 0.02; // Increased for more noticeable rotation
+        let rotationAcceleration = 0.001; // Smoother acceleration
+        let rotationDamping = 0.99; // Better damping
+        let rotationEasing = 0.08; // Smoother easing
+        let rotationActive = false;
+
+        // Enhanced rotation with multiple axes and floating effect
+        let rotationY = 0;
+        let floatingOffset = 0;
+        let floatingSpeed = 0.003;
+        let floatingAmplitude = 0.008;
 
         // Model info visibility
         let isModelInfoVisible = false;
@@ -478,18 +781,21 @@
         // Memory monitoring
         let memoryUsage = 0;
         let lastMemoryCheck = 0;
-        let memoryThreshold = 150;
+        let memoryThreshold = 200; // Increased for high quality
 
-        // Single loading control
-        let isCurrentlyLoading = false;
+        // Debug variables
+        let lastAttemptedUrl = '';
+        let lastLoadStatus = '';
 
         const elements = {
             statusDot: document.querySelector("#statusDot"),
             audioButton: document.querySelector("#audioButton"),
             trackInfo: document.querySelector("#trackInfo"),
             dataStatus: document.querySelector("#dataStatus"),
+            rotationIndicator: document.querySelector("#rotationIndicator"),
             waitingMessage: document.querySelector("#waitingMessage"),
             loadingOverlay: document.querySelector("#loadingOverlay"),
+            loadingBlocked: document.querySelector("#loadingBlocked"),
             loadingText: document.querySelector("#loadingText"),
             progressFill: document.querySelector("#progressFill"),
             progressText: document.querySelector("#progressText"),
@@ -504,10 +810,18 @@
             currentTime: document.querySelector("#currentTime"),
             totalTime: document.querySelector("#totalTime"),
             errorMessage: document.querySelector("#errorMessage"),
-            retryButton: document.querySelector("#retryButton")
+            retryButton: document.querySelector("#retryButton"),
+            debugPanel: document.querySelector("#debugPanel"),
+            debugToggle: document.querySelector("#debugToggle"),
+            performanceControls: document.querySelector("#performanceControls"),
+            enableRotation: document.querySelector("#enableRotation"),
+            enableAnimations: document.querySelector("#enableAnimations"),
+            highQuality: document.querySelector("#highQuality"),
+            skipValidation: document.querySelector("#skipValidation"),
+            strictLoading: document.querySelector("#strictLoading")
         };
 
-        // Memory management functions
+        // Enhanced Memory Management Functions
         function getMemoryUsage() {
             if (performance.memory) {
                 return Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
@@ -527,7 +841,7 @@
                 console.log(`Memory usage high (${currentMemory}MB), cleaning up...`);
 
                 const now = Date.now();
-                const maxAge = 5 * 60 * 1000;
+                const maxAge = 3 * 60 * 1000; // Reduced cache time for high quality
 
                 for (const [key, model] of modelCache.entries()) {
                     if (now - model.userData.lastUsed > maxAge) {
@@ -536,29 +850,219 @@
                     }
                 }
 
+                urlValidationCache.clear();
                 forceGarbageCollection();
             }
         }
 
-        // Smooth rotation
-        function updateSmoothRotation(model, deltaTime) {
+        // Enhanced URL validation
+        async function validateModelUrl(url) {
+            if (!url || skipValidation) {
+                console.log('Skipping URL validation');
+                return true;
+            }
+
+            if (urlValidationCache.has(url)) {
+                const result = urlValidationCache.get(url);
+                console.log(`URL validation from cache: ${url} -> ${result}`);
+                return result;
+            }
+
+            try {
+                console.log(`Validating URL: ${url}`);
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+                const response = await fetch(url, {
+                    method: 'HEAD',
+                    signal: controller.signal,
+                    mode: 'no-cors'
+                });
+
+                clearTimeout(timeoutId);
+
+                const isValid = true;
+                urlValidationCache.set(url, isValid);
+
+                console.log(`URL validation result: ${url} -> ${isValid}`);
+                return isValid;
+
+            } catch (error) {
+                console.log(`URL validation failed for ${url}, but proceeding anyway:`, error.message);
+                return true;
+            }
+        }
+
+        // ENHANCED SMOOTH ROTATION ALGORITHM - Higher Quality
+        function updateEnhancedRotation(model, deltaTime) {
             if (!enableRotation || !model) return;
 
-            const targetSpeed = (targetFound && isModelInfoVisible) ? targetRotationSpeed : 0;
+            const isActive = (targetFound && isModelInfoVisible);
+            const targetSpeed = isActive ? targetRotationSpeed : 0;
 
+            // Smooth speed transition
             rotationSpeed += (targetSpeed - rotationSpeed) * rotationEasing * deltaTime * 60;
 
+            // Apply damping when stopping
             if (targetSpeed === 0) {
                 rotationSpeed *= Math.pow(rotationDamping, deltaTime * 60);
             }
 
+            // Apply rotation if speed is significant
             if (Math.abs(rotationSpeed) > 0.0001) {
-                model.rotation.y += rotationSpeed * deltaTime * 60;
+                rotationY += rotationSpeed * deltaTime * 60;
+                model.rotation.y = rotationY;
 
+                // Enhanced floating effect
                 const time = performance.now() * 0.001;
-                model.position.y += Math.sin(time * 2) * 0.002;
+                floatingOffset += floatingSpeed * deltaTime * 60;
+                model.position.y += Math.sin(time * 2 + floatingOffset) * floatingAmplitude;
+
+                // Subtle tilt for more dynamic look
+                model.rotation.x = Math.sin(time * 1.5) * 0.05;
+                model.rotation.z = Math.cos(time * 1.2) * 0.03;
+
+                rotationActive = true;
+                elements.rotationIndicator.style.display = 'block';
+            } else {
+                rotationActive = false;
+                elements.rotationIndicator.style.display = 'none';
             }
         }
+
+        // STRICT LOADING CONTROL FUNCTIONS
+        function isLoadingBlocked() {
+            return strictLoading && isCurrentlyLoading;
+        }
+
+        function showLoadingBlocked() {
+            blockedAttempts++;
+            elements.loadingBlocked.style.display = 'block';
+            setStatus('blocked');
+
+            setTimeout(() => {
+                elements.loadingBlocked.style.display = 'none';
+                if (!isCurrentlyLoading) {
+                    setStatus('default');
+                }
+            }, 2000);
+
+            updateDebugInfo();
+            console.log(`🚫 Loading blocked! Attempt #${blockedAttempts} - Currently loading model ${currentLoadingModelIndex}`);
+        }
+
+        function startLoading(modelIndex) {
+            if (isLoadingBlocked()) {
+                showLoadingBlocked();
+                return false;
+            }
+
+            isCurrentlyLoading = true;
+            currentLoadingModelIndex = modelIndex;
+            loadingStartTime = Date.now();
+            setStatus('loading');
+            updateDebugInfo();
+
+            console.log(`🔄 Started loading model ${modelIndex} (Strict mode: ${strictLoading})`);
+            return true;
+        }
+
+        function finishLoading() {
+            const loadingDuration = Date.now() - loadingStartTime;
+            console.log(`✅ Finished loading model ${currentLoadingModelIndex} in ${loadingDuration}ms`);
+
+            isCurrentlyLoading = false;
+            currentLoadingModelIndex = -1;
+            loadingStartTime = 0;
+            loadingPromise = null;
+            elements.loadingOverlay.style.display = 'none';
+            setStatus('default');
+            updateDebugInfo();
+        }
+
+        // Enhanced debug update
+        let updateDebugTimeout = null;
+        function updateDebugInfo() {
+            if (updateDebugTimeout) clearTimeout(updateDebugTimeout);
+            updateDebugTimeout = setTimeout(() => {
+                document.querySelector("#debugStatus").textContent = isARInitialized ? "AR Running" : "Waiting";
+                document.querySelector("#debugLoadingState").textContent = isCurrentlyLoading ?
+                    `Loading Model ${currentLoadingModelIndex}` : "Idle";
+                document.querySelector("#debugArtifactCount").textContent = artifactData.length;
+                document.querySelector("#debugARStatus").textContent = isARInitialized ? "Yes" : "No";
+                document.querySelector("#debugCurrentTrack").textContent = currentTrackIndex >= 0 ? `Track ${currentTrackIndex}` : "None";
+                document.querySelector("#debugModelStatus").textContent = activeModels.size > 0 ? "Yes" : "No";
+                document.querySelector("#debugRotationStatus").textContent = enableRotation ? "Enabled" : "Disabled";
+                document.querySelector("#debugRotationSpeed").textContent = rotationSpeed.toFixed(3);
+                document.querySelector("#debugMemory").textContent = `${getMemoryUsage()}MB`;
+                document.querySelector("#debugFPS").textContent = fpsCounter;
+                document.querySelector("#debugLastUrl").textContent = lastAttemptedUrl || "None";
+                document.querySelector("#debugLoadStatus").textContent = lastLoadStatus || "None";
+                document.querySelector("#debugBlockedAttempts").textContent = blockedAttempts;
+                document.querySelector("#debugQueue").textContent = isCurrentlyLoading ?
+                    `Loading: ${currentLoadingModelIndex}` : "Empty";
+            }, 100);
+        }
+
+        function showLastData(data) {
+            const debugLastData = document.querySelector("#debugLastData");
+            if (data && data.length > 0) {
+                const summary = data.slice(0, 3).map((item, index) => {
+                    const modelUrl = item.model3dPcGlb ? item.model3dPcGlb.split(',')[0].trim() : 'No URL';
+                    return `${index + 1}. ${(item.tenHienVat3D || 'Unknown').substring(0, 20)}...\n   Model: ${item.model3dPcGlb ? 'Yes' : 'No'}\n   URL: ${modelUrl.substring(0, 50)}...\n   Index: ${index}`;
+                }).join('\n\n');
+                debugLastData.textContent = summary + (data.length > 3 ? `\n... +${data.length - 3} more` : '');
+            } else {
+                debugLastData.textContent = "No valid data";
+            }
+        }
+
+        // Enhanced performance controls
+        elements.debugToggle.addEventListener('click', () => {
+            const isVisible = elements.debugPanel.style.display === 'block';
+            elements.debugPanel.style.display = isVisible ? 'none' : 'block';
+            elements.performanceControls.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) updateDebugInfo();
+        });
+
+        elements.enableRotation.addEventListener('change', (e) => {
+            enableRotation = e.target.checked;
+            if (!enableRotation) {
+                rotationSpeed = 0;
+                rotationY = 0;
+                floatingOffset = 0;
+                elements.rotationIndicator.style.display = 'none';
+            }
+            console.log(`🔄 Auto rotation ${enableRotation ? 'enabled' : 'disabled'}`);
+        });
+
+        elements.enableAnimations.addEventListener('change', (e) => {
+            enableAnimations = e.target.checked;
+            if (mixer) {
+                mixer.timeScale = enableAnimations ? 1 : 0;
+            }
+            console.log(`🎬 Animations ${enableAnimations ? 'enabled' : 'disabled'}`);
+        });
+
+        elements.highQuality.addEventListener('change', (e) => {
+            highQuality = e.target.checked;
+            if (mindarThree && mindarThree.renderer) {
+                const pixelRatio = highQuality ? Math.min(window.devicePixelRatio, 2) : 0.7;
+                mindarThree.renderer.setPixelRatio(pixelRatio);
+                console.log(`🎨 Quality set to ${highQuality ? 'high' : 'standard'} (pixel ratio: ${pixelRatio})`);
+            }
+        });
+
+        elements.skipValidation.addEventListener('change', (e) => {
+            skipValidation = e.target.checked;
+            console.log(`🔍 URL validation ${skipValidation ? 'disabled' : 'enabled'}`);
+        });
+
+        elements.strictLoading.addEventListener('change', (e) => {
+            strictLoading = e.target.checked;
+            console.log(`🚫 Strict loading ${strictLoading ? 'enabled' : 'disabled'}`);
+        });
 
         function parseArtifactToModelData(artifact, index) {
             let modelUrl = null;
@@ -589,7 +1093,7 @@
             };
         }
 
-        // Data receiving
+        // Enhanced data receiving with cleanup
         function receiveDataFromReactNative(data) {
             try {
                 console.log('Received data from React Native:', data);
@@ -602,6 +1106,9 @@
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
 
+                    showLastData(data);
+                    updateDebugInfo();
+
                     if (window.ReactNativeWebView) {
                         window.ReactNativeWebView.postMessage(JSON.stringify({
                             type: 'DATA_RECEIVED',
@@ -609,6 +1116,7 @@
                         }));
                     }
 
+                    // Enhanced logging with URL details
                     data.forEach((artifact, index) => {
                         const modelUrl = artifact.model3dPcGlb ? artifact.model3dPcGlb.split(',')[0].trim() : null;
                         console.log(`Artifact ${index}:`, {
@@ -637,7 +1145,7 @@
         }
 
         function clearOldData() {
-            console.log('Clearing old data...');
+            console.log('Clearing old data to prevent lag...');
 
             stopAudio();
 
@@ -650,17 +1158,26 @@
             });
 
             activeModels.clear();
+
+            // Reset loading state
             isCurrentlyLoading = false;
+            currentLoadingModelIndex = -1;
+            loadingPromise = null;
 
             currentTrackIndex = -1;
+            currentArtifact = null;
             targetFound = false;
             isModelLoaded = false;
             isModelInfoVisible = false;
+            rotationActive = false;
+            rotationSpeed = 0;
+            rotationY = 0;
+            floatingOffset = 0;
 
             hideModelInfo();
             cleanupMemory();
 
-            console.log('Old data cleared');
+            console.log('Old data cleared successfully');
         }
 
         window.receiveDataFromReactNative = receiveDataFromReactNative;
@@ -695,110 +1212,151 @@
         function getModelDataForTrack(trackIndex) {
             if (artifactData.length > 0 && trackIndex < artifactData.length) {
                 const artifact = artifactData[trackIndex];
+                currentArtifact = artifact;
                 return parseArtifactToModelData(artifact, trackIndex);
             }
             console.warn(`No artifact found for track index ${trackIndex}`);
             return null;
         }
 
-        // Model loading with blocking
+        // ENHANCED MODEL LOADING WITH STRICT CONTROL
         async function loadModel(fileLink, modelIndex) {
-            // Block if already loading
-            if (isCurrentlyLoading) {
-                console.log(`🚫 Model loading blocked - already loading another model`);
+            // STRICT LOADING CHECK - Block if already loading
+            if (!startLoading(modelIndex)) {
                 return null;
             }
 
+            lastAttemptedUrl = fileLink;
+            lastLoadStatus = 'Starting...';
+            updateDebugInfo();
+
             try {
                 if (!fileLink) {
+                    lastLoadStatus = 'No URL provided';
                     console.warn(`No model URL provided for index ${modelIndex}`);
+                    updateDebugInfo();
                     return null;
                 }
 
-                isCurrentlyLoading = true;
-                console.log(`🔄 Loading model ${modelIndex} from: ${fileLink}`);
+                console.log(`🔄 Starting to load HIGH QUALITY model ${modelIndex} from: ${fileLink}`);
+                lastLoadStatus = 'Validating URL...';
+                updateDebugInfo();
 
-                // Show loading overlay
+                // Show enhanced loading overlay
                 elements.loadingOverlay.style.display = 'block';
-                updateProgress(0, `Đang tải model ${modelIndex}...`);
+                updateProgress(0, `Đang tải model chất lượng cao ${modelIndex}...`);
+
+                // URL validation (can be skipped)
+                if (!skipValidation) {
+                    const isValidUrl = await validateModelUrl(fileLink);
+                    if (!isValidUrl) {
+                        lastLoadStatus = 'URL validation failed';
+                        console.warn(`URL validation failed for index ${modelIndex}: ${fileLink}`);
+                        updateDebugInfo();
+                    }
+                }
 
                 // Check cache first
-                const cacheKey = `${fileLink}_${modelIndex}`;
+                const cacheKey = `${fileLink}_${modelIndex}_hq`;
                 if (modelCache.has(cacheKey)) {
-                    console.log(`✅ Loading model ${modelIndex} from cache`);
+                    lastLoadStatus = 'Loaded from cache';
+                    console.log(`✅ Loading HIGH QUALITY model ${modelIndex} from cache`);
                     const cachedModel = modelCache.get(cacheKey);
                     cachedModel.userData.lastUsed = Date.now();
                     updateProgress(100, "Loaded from cache");
+                    updateDebugInfo();
                     return cachedModel.clone();
                 }
 
-                // Create timestamped URL
-                const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}`;
-                console.log(`📥 Loading model from: ${timestampedUrl}`);
+                lastLoadStatus = 'Creating high-quality loader...';
+                updateDebugInfo();
 
-                // Set loading timeout
+                // Create timestamped URL to avoid cache issues
+                const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}&hq=1`;
+                console.log(`📥 Loading HIGH QUALITY model from: ${timestampedUrl}`);
+
+                // Set loading timeout - increased for high quality
                 if (loadingTimeout) clearTimeout(loadingTimeout);
                 loadingTimeout = setTimeout(() => {
-                    elements.loadingOverlay.style.display = 'none';
-                    console.error(`❌ Model loading timeout for index ${modelIndex}`);
-                }, 20000);
+                    lastLoadStatus = 'Timeout';
+                    updateDebugInfo();
+                    finishLoading();
+                    console.error(`❌ HIGH QUALITY model loading timeout for index ${modelIndex}`);
+                }, 30000); // Increased timeout for high quality
 
                 const loader = new GLTFLoader();
 
-                return new Promise((resolve, reject) => {
+                // Create loading promise
+                loadingPromise = new Promise((resolve, reject) => {
                     loader.load(
                         timestampedUrl,
                         (gltf) => {
                             clearTimeout(loadingTimeout);
-                            updateProgress(90, "Thiết lập...");
+                            lastLoadStatus = 'Processing high-quality model...';
+                            updateProgress(90, "Thiết lập chất lượng cao...");
+                            updateDebugInfo();
 
-                            console.log(`✅ Model ${modelIndex} loaded successfully`);
+                            console.log(`✅ HIGH QUALITY Model ${modelIndex} loaded successfully`);
 
                             const model = gltf.scene;
 
-                            // Model optimization
+                            // ENHANCED MODEL OPTIMIZATION FOR HIGH QUALITY
                             const box = new THREE.Box3().setFromObject(model);
                             const size = box.getSize(new THREE.Vector3());
                             const maxDimension = Math.max(size.x, size.y, size.z);
 
+                            // Ensure model has reasonable size
                             if (maxDimension === 0) {
                                 console.warn(`Model ${modelIndex} has zero size, using default scale`);
                                 model.scale.setScalar(1.0);
                             } else {
-                                const scale = 1.0 / maxDimension;
+                                const scale = 1.2 / maxDimension; // Slightly larger for better visibility
                                 model.scale.setScalar(scale);
                                 const center = box.getCenter(new THREE.Vector3());
                                 model.position.sub(center.multiplyScalar(scale));
                             }
 
-                            // Material optimization
+                            // ENHANCED MATERIAL OPTIMIZATION FOR HIGH QUALITY
                             let meshCount = 0;
                             model.traverse((child) => {
                                 if (child.isMesh) {
                                     meshCount++;
                                     if (child.material) {
-                                        if (lowQuality && child.material.map) {
-                                            child.material.map.minFilter = THREE.LinearFilter;
-                                            child.material.map.magFilter = THREE.LinearFilter;
-                                            child.material.map.generateMipmaps = false;
-                                        }
+                                        // High quality settings
+                                        if (highQuality) {
+                                            if (child.material.map) {
+                                                child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
+                                                child.material.map.magFilter = THREE.LinearFilter;
+                                                child.material.map.generateMipmaps = true;
+                                                child.material.map.anisotropy = Math.min(4, mindarThree?.renderer?.capabilities?.getMaxAnisotropy() || 1);
+                                            }
 
-                                        child.material.transparent = false;
-                                        child.material.alphaTest = 0;
+                                            // Enhanced material properties
+                                            child.material.transparent = true;
+                                            child.material.alphaTest = 0.1;
+                                            child.material.side = THREE.DoubleSide;
+
+                                            // Better lighting
+                                            if (child.material.metalness !== undefined) {
+                                                child.material.metalness = 0.1;
+                                                child.material.roughness = 0.8;
+                                            }
+                                        }
                                     }
 
-                                    child.castShadow = false;
-                                    child.receiveShadow = false;
+                                    // Enhanced shadow settings for high quality
+                                    child.castShadow = highQuality;
+                                    child.receiveShadow = highQuality;
                                     child.frustumCulled = true;
-                                    child.matrixAutoUpdate = false;
+                                    child.matrixAutoUpdate = true; // Enable for smooth rotation
                                 }
                             });
 
-                            console.log(`Model ${modelIndex} has ${meshCount} meshes`);
+                            console.log(`HIGH QUALITY Model ${modelIndex} has ${meshCount} meshes`);
 
-                            // Animation setup
+                            // ENHANCED ANIMATION SETUP
                             if (gltf.animations && gltf.animations.length > 0 && enableAnimations) {
-                                console.log(`Model ${modelIndex} has ${gltf.animations.length} animations`);
+                                console.log(`HIGH QUALITY Model ${modelIndex} has ${gltf.animations.length} animations`);
                                 if (mixer) {
                                     mixer.stopAllAction();
                                     mixer = null;
@@ -808,56 +1366,75 @@
                                 gltf.animations.forEach((clip) => {
                                     const action = mixer.clipAction(clip);
                                     action.setLoop(THREE.LoopRepeat);
+                                    action.timeScale = 1.0; // Normal speed for high quality
                                     action.play();
                                 });
                             }
 
-                            // Store model metadata
+                            // Store enhanced model metadata
                             model.userData = {
                                 index: modelIndex,
                                 lastUsed: Date.now(),
                                 originalScale: model.scale.x,
                                 isOptimized: true,
-                                meshCount: meshCount
+                                isHighQuality: highQuality,
+                                meshCount: meshCount,
+                                hasAnimations: gltf.animations && gltf.animations.length > 0
                             };
 
-                            // Cache the model
-                            if (modelCache.size < 5) {
+                            // Cache the high-quality model
+                            if (modelCache.size < 3) { // Reduced cache size for high quality models
                                 modelCache.set(cacheKey, model.clone());
-                                console.log(`Model ${modelIndex} cached`);
+                                console.log(`HIGH QUALITY Model ${modelIndex} cached`);
                             }
 
-                            updateProgress(100, "Hoàn thành!");
-                            console.log(`🎉 Model ${modelIndex} ready for display`);
+                            lastLoadStatus = 'Complete!';
+                            updateProgress(100, "Hoàn thành chất lượng cao!");
+                            updateDebugInfo();
+
+                            console.log(`🎉 HIGH QUALITY Model ${modelIndex} ready for display with auto-rotation`);
                             resolve(model);
                         },
                         (progress) => {
                             if (progress.lengthComputable) {
                                 const percentComplete = (progress.loaded / progress.total) * 80;
-                                updateProgress(percentComplete, `${Math.round(progress.loaded / 1024)}KB`);
+                                lastLoadStatus = `Loading HQ ${Math.round(percentComplete)}%`;
+                                updateProgress(percentComplete, `${Math.round(progress.loaded / 1024)}KB (HQ)`);
+                                updateDebugInfo();
+                            } else {
+                                lastLoadStatus = `Loading HQ ${Math.round(progress.loaded / 1024)}KB`;
+                                updateDebugInfo();
                             }
                         },
                         (error) => {
                             clearTimeout(loadingTimeout);
-                            console.error(`❌ Error loading model ${modelIndex}:`, error);
+                            lastLoadStatus = `Error: ${error.message}`;
+                            console.error(`❌ Error loading HIGH QUALITY model ${modelIndex}:`, error);
+                            updateDebugInfo();
                             reject(error);
                         }
                     );
                 });
 
+                const result = await loadingPromise;
+                return result;
+
             } catch (error) {
                 if (loadingTimeout) clearTimeout(loadingTimeout);
-                console.error(`❌ Error loading model ${modelIndex}:`, error);
-                showError("Lỗi tải model", `Model ${modelIndex}: ${error.message}`);
+                lastLoadStatus = `Failed: ${error.message}`;
+                console.error(`❌ Error loading HIGH QUALITY model ${modelIndex}:`, error);
+                updateDebugInfo();
+
+                showError("Lỗi tải model chất lượng cao", `Model ${modelIndex}: ${error.message}`);
                 return null;
             } finally {
-                isCurrentlyLoading = false;
-                elements.loadingOverlay.style.display = 'none';
+                finishLoading();
             }
         }
 
         function setStatus(type) {
             elements.statusDot.className = `status-dot ${type}`;
+            updateDebugInfo();
         }
 
         function updateProgress(progress, details) {
@@ -918,7 +1495,7 @@
                     if (!isModelInfoVisible) {
                         elements.modelInfo.style.display = 'none';
                     }
-                }, 300);
+                }, 400);
             }
         }
 
@@ -967,11 +1544,12 @@
             elements.modelName.textContent = `${data.name} (Track ${trackIndex})`;
 
             let description = data.description;
-            if (description.length > 100) {
-                description = description.substring(0, 100) + '...';
+            if (description.length > 120) {
+                description = description.substring(0, 120) + '...';
             }
 
             elements.modelDescription.textContent = description;
+
             elements.modelInfo.style.display = 'none';
             isModelInfoVisible = false;
 
@@ -980,8 +1558,10 @@
                 initAudio(data);
             }
 
-            elements.trackInfo.textContent = `Track ${trackIndex} - Index ${data.index}`;
+            elements.trackInfo.textContent = `Track ${trackIndex} - Index ${data.index} (HQ)`;
             elements.trackInfo.style.display = 'block';
+
+            updateDebugInfo();
         }
 
         function hideModelInfo() {
@@ -991,12 +1571,14 @@
                 if (!isModelInfoVisible) {
                     elements.modelInfo.style.display = 'none';
                 }
-            }, 300);
+            }, 400);
 
             elements.audioButton.style.display = 'none';
             elements.audioControls.style.display = 'none';
             elements.trackInfo.style.display = 'none';
+            elements.rotationIndicator.style.display = 'none';
             stopAudio();
+            updateDebugInfo();
         }
 
         async function initAR() {
@@ -1010,7 +1592,7 @@
                 elements.retryButton.style.display = 'none';
                 setStatus('loading');
 
-                console.log('🚀 Initializing AR...');
+                console.log('🚀 Initializing HIGH QUALITY AR...');
 
                 mindarThree = new MindARThree({
                     container: document.querySelector("#container"),
@@ -1019,13 +1601,21 @@
 
                 const { renderer, scene, camera } = mindarThree;
 
-                renderer.setPixelRatio(lowQuality ? 0.5 : Math.min(window.devicePixelRatio, 2));
-                renderer.shadowMap.enabled = false;
-                renderer.antialias = !lowQuality;
+                // ENHANCED RENDERER SETTINGS FOR HIGH QUALITY
+                const pixelRatio = highQuality ? Math.min(window.devicePixelRatio, 2) : 0.7;
+                renderer.setPixelRatio(pixelRatio);
+                renderer.shadowMap.enabled = highQuality;
+                renderer.shadowMap.type = highQuality ? THREE.PCFSoftShadowMap : THREE.BasicShadowMap;
+                renderer.antialias = highQuality;
                 renderer.powerPreference = "high-performance";
+                renderer.outputEncoding = THREE.sRGBEncoding;
+                renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                renderer.toneMappingExposure = 1.0;
+
+                console.log(`🎨 Renderer configured for ${highQuality ? 'HIGH' : 'STANDARD'} quality (pixel ratio: ${pixelRatio})`);
 
                 const maxTargets = Math.min(artifactData.length, 8);
-                console.log(`Creating ${maxTargets} AR targets`);
+                console.log(`Creating ${maxTargets} HIGH QUALITY AR targets`);
 
                 for (let i = 0; i < maxTargets; i++) {
                     try {
@@ -1036,7 +1626,7 @@
                             targetFound = true;
                             currentTrackIndex = i;
 
-                            console.log(`🎯 Target ${i} found!`);
+                            console.log(`🎯 Target ${i} found! Loading HIGH QUALITY artifact at index ${i}`);
 
                             const modelData = getModelDataForTrack(i);
                             if (!modelData) {
@@ -1044,6 +1634,7 @@
                                 return;
                             }
 
+                            // Show model info regardless of model loading
                             showModelInfo(modelData, i);
 
                             if (!modelData.modelUrl) {
@@ -1051,23 +1642,28 @@
                                 return;
                             }
 
-                            // Check if model already exists
+                            console.log(`📦 Checking HIGH QUALITY model for index ${i}: ${modelData.name}`);
+
+                            // Check if model already exists for this index
                             if (activeModels.has(i)) {
                                 const existingModel = activeModels.get(i);
                                 anchor.group.add(existingModel);
-                                console.log(`♻️ Reusing existing model for index ${i}`);
+                                console.log(`♻️ Reusing existing HIGH QUALITY model for index ${i}`);
                                 isModelLoaded = true;
                             } else {
-                                // Try to load model (will be blocked if another is loading)
-                                const model = await loadModel(modelData.modelUrl, i);
+                                // Load model with strict control
+                                console.log(`🔄 Loading HIGH QUALITY model ${i}`);
 
-                                if (model) {
-                                    console.log(`✅ Adding model ${i} to scene`);
-                                    anchor.group.add(model);
-                                    activeModels.set(i, model);
-                                    isModelLoaded = true;
-                                } else {
-                                    console.warn(`⚠️ Failed to load model for index ${i}`);
+                                try {
+                                    const model = await loadModel(modelData.modelUrl, i);
+                                    if (model) {
+                                        activeModels.set(i, model);
+                                        anchor.group.add(model);
+                                        isModelLoaded = true;
+                                        console.log(`✅ HIGH QUALITY model ${i} loaded and added to scene`);
+                                    }
+                                } catch (error) {
+                                    console.error(`❌ Failed to load HIGH QUALITY model ${i}:`, error);
                                 }
                             }
                         };
@@ -1091,17 +1687,33 @@
                     }
                 }
 
-                scene.add(new THREE.AmbientLight(0x404040, 1.2));
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                // ENHANCED LIGHTING FOR HIGH QUALITY
+                scene.add(new THREE.AmbientLight(0x404040, 1.5));
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
                 directionalLight.position.set(5, 5, 5);
-                directionalLight.castShadow = false;
+                directionalLight.castShadow = highQuality;
+                if (highQuality) {
+                    directionalLight.shadow.mapSize.width = 2048;
+                    directionalLight.shadow.mapSize.height = 2048;
+                    directionalLight.shadow.camera.near = 0.5;
+                    directionalLight.shadow.camera.far = 50;
+                }
                 scene.add(directionalLight);
+
+                // Additional fill light for better quality
+                if (highQuality) {
+                    const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
+                    fillLight.position.set(-5, 3, -5);
+                    scene.add(fillLight);
+                }
 
                 await mindarThree.start();
                 setStatus('default');
                 isARInitialized = true;
+                updateDebugInfo();
 
-                console.log('🎉 AR initialized successfully');
+                console.log('🎉 HIGH QUALITY AR initialized successfully');
 
                 const clock = new THREE.Clock();
                 let fpsTime = 0;
@@ -1111,11 +1723,7 @@
                     const delta = clock.getDelta();
                     const currentTime = performance.now();
 
-                    frameSkip++;
-                    if (frameSkip % 2 === 0 && lowQuality) {
-                        return;
-                    }
-
+                    // FPS calculation
                     fpsFrames++;
                     fpsTime += delta;
                     if (fpsTime >= 1.0) {
@@ -1124,40 +1732,49 @@
                         fpsTime = 0;
                     }
 
-                    if (currentTime - lastMemoryCheck > 10000) {
+                    // Memory monitoring
+                    if (currentTime - lastMemoryCheck > 15000) { // Check every 15 seconds for high quality
                         memoryUsage = getMemoryUsage();
                         lastMemoryCheck = currentTime;
+                        updateDebugInfo();
 
                         if (memoryUsage > memoryThreshold) {
                             cleanupMemory();
                         }
                     }
 
-                    if (mixer && enableAnimations && fpsCounter > 20) {
+                    // Enhanced animation update
+                    if (mixer && enableAnimations && fpsCounter > 15) {
                         mixer.update(delta);
                     }
 
+                    // ENHANCED ROTATION UPDATE
                     if (currentTrackIndex >= 0 && activeModels.has(currentTrackIndex)) {
                         const currentModel = activeModels.get(currentTrackIndex);
-                        updateSmoothRotation(currentModel, delta);
+                        updateEnhancedRotation(currentModel, delta);
                     }
 
                     renderer.render(scene, camera);
                 });
 
             } catch (error) {
-                console.error("❌ AR initialization error:", error);
-                showError("Không thể khởi tạo AR", "Vui lòng cho phép truy cập camera");
+                console.error("❌ HIGH QUALITY AR initialization error:", error);
+                showError("Không thể khởi tạo AR chất lượng cao", "Vui lòng cho phép truy cập camera");
             }
         }
 
         function cleanup() {
-            console.log('🧹 Starting cleanup...');
+            console.log('🧹 Starting HIGH QUALITY cleanup...');
 
             if (loadingTimeout) {
                 clearTimeout(loadingTimeout);
                 loadingTimeout = null;
             }
+
+            // Reset loading state
+            isCurrentlyLoading = false;
+            currentLoadingModelIndex = -1;
+            loadingPromise = null;
 
             if (mindarThree) {
                 mindarThree.stop();
@@ -1190,7 +1807,9 @@
                 });
             });
             activeModels.clear();
+
             modelCache.clear();
+            urlValidationCache.clear();
 
             stopAudio();
             isModelLoaded = false;
@@ -1199,12 +1818,20 @@
             mindarThree = null;
             anchors = [];
             isARInitialized = false;
-            frameSkip = 0;
+            rotationActive = false;
             rotationSpeed = 0;
-            isCurrentlyLoading = false;
+            rotationY = 0;
+            floatingOffset = 0;
+            lastAttemptedUrl = '';
+            lastLoadStatus = '';
+            blockedAttempts = 0;
+
+            elements.rotationIndicator.style.display = 'none';
+            elements.loadingBlocked.style.display = 'none';
 
             forceGarbageCollection();
-            console.log('✅ Cleanup completed');
+            updateDebugInfo();
+            console.log('✅ HIGH QUALITY cleanup completed');
         }
 
         // Event listeners
@@ -1235,7 +1862,6 @@
             }
         });
 
-        // Prevent zoom on double tap
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function (event) {
             const now = (new Date()).getTime();
@@ -1246,19 +1872,20 @@
         }, false);
 
         window.addEventListener('load', () => {
-            console.log('📱 WebView loaded, waiting for data...');
+            console.log('📱 HIGH QUALITY WebView loaded, waiting for data from React Native...');
 
             if (window.ReactNativeWebView) {
                 window.ReactNativeWebView.postMessage(JSON.stringify({
                     type: 'WEBVIEW_READY',
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    quality: 'HIGH'
                 }));
             }
         });
 
         window.addEventListener('beforeunload', cleanup);
 
-        // Memory cleanup on visibility change
+        // Enhanced memory cleanup on visibility change
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 if (mixer) mixer.timeScale = 0;
@@ -1268,18 +1895,75 @@
                     if (document.hidden) {
                         cleanupMemory();
                     }
-                }, 5000);
+                }, 3000);
             } else {
                 if (mixer && enableAnimations) mixer.timeScale = 1;
             }
         });
 
-        // Performance monitoring
+        // Enhanced debug function
+        window.debugSetData = function (data) {
+            console.log('🔧 Debug: Setting artifact data for HIGH QUALITY', data);
+            receiveDataFromReactNative(data);
+        };
+
+        // Performance monitoring for high quality
         setInterval(() => {
-            if (fpsCounter < 15 && !lowQuality) {
-                console.warn('⚠️ Low FPS detected');
+            if (fpsCounter < 20 && highQuality) {
+                console.warn('⚠️ Low FPS detected in HIGH QUALITY mode, consider reducing quality');
             }
-        }, 5000);
+        }, 10000);
+
+        // Enhanced debug helper functions
+        window.debugForceLoad = function (index) {
+            console.log(`🔧 Debug: Force loading HIGH QUALITY model at index ${index}`);
+            if (artifactData[index]) {
+                const modelData = parseArtifactToModelData(artifactData[index], index);
+                if (modelData.modelUrl) {
+                    loadModel(modelData.modelUrl, index);
+                }
+            }
+        };
+
+        window.debugClearCache = function () {
+            console.log('🔧 Debug: Clearing all HIGH QUALITY caches');
+            modelCache.clear();
+            urlValidationCache.clear();
+            console.log('✅ All HIGH QUALITY caches cleared');
+        };
+
+        window.debugShowInfo = function () {
+            console.log('🔧 HIGH QUALITY Debug Info:', {
+                artifactCount: artifactData.length,
+                activeModels: activeModels.size,
+                cachedModels: modelCache.size,
+                currentTrack: currentTrackIndex,
+                isARInitialized,
+                memoryUsage: getMemoryUsage(),
+                lastUrl: lastAttemptedUrl,
+                lastStatus: lastLoadStatus,
+                isCurrentlyLoading,
+                currentLoadingModel: currentLoadingModelIndex,
+                blockedAttempts,
+                highQuality,
+                strictLoading,
+                rotationActive,
+                rotationSpeed: rotationSpeed.toFixed(3)
+            });
+        };
+
+        window.debugTestRotation = function () {
+            console.log('🔧 Debug: Testing rotation');
+            enableRotation = true;
+            elements.enableRotation.checked = true;
+            if (currentTrackIndex >= 0 && activeModels.has(currentTrackIndex)) {
+                isModelInfoVisible = true;
+                elements.modelInfo.style.display = 'block';
+                console.log('✅ Rotation test activated');
+            } else {
+                console.log('❌ No active model to rotate');
+            }
+        };
 
     </script>
 </body>
