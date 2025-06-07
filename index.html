@@ -773,6 +773,7 @@
 
                 if (Array.isArray(data) && data.length > 0) {
                     artifactData = data;
+                    elements.dataStatus.textContent = `${data.length} items`;
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
 
