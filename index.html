@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-    <title>AR Audio Scanner - Clean</title>
+    <title>AR Audio Scanner - Optimized</title>
     <script type="importmap">
   {
     "imports": {
@@ -61,12 +61,6 @@
             animation: loadingPulse 1s infinite;
         }
 
-        .status-dot.blocked {
-            background: #FF5722;
-            box-shadow: 0 0 12px rgba(255, 87, 34, 0.6);
-            animation: blockedFlash 0.5s infinite;
-        }
-
         .status-dot.error {
             background: #f44336;
             box-shadow: 0 0 12px rgba(244, 67, 54, 0.6);
@@ -107,18 +101,6 @@
             50% {
                 opacity: 0.5;
                 transform: scale(1.3);
-            }
-        }
-
-        @keyframes blockedFlash {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.3;
             }
         }
 
@@ -273,40 +255,6 @@
 
             50% {
                 opacity: 1;
-            }
-        }
-
-        /* Loading blocked indicator */
-        .loading-blocked {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(255, 87, 34, 0.95);
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            z-index: 16;
-            backdrop-filter: blur(10px);
-            display: none;
-            max-width: 80vw;
-            animation: shake 0.5s ease-in-out;
-        }
-
-        @keyframes shake {
-
-            0%,
-            100% {
-                transform: translate(-50%, -50%) translateX(0);
-            }
-
-            25% {
-                transform: translate(-50%, -50%) translateX(-5px);
-            }
-
-            75% {
-                transform: translate(-50%, -50%) translateX(5px);
             }
         }
 
@@ -487,13 +435,6 @@
     <div class="rotation-indicator" id="rotationIndicator">🔄 Auto Rotate</div>
     <div id="container"></div>
 
-    <!-- Loading Blocked Indicator -->
-    <div class="loading-blocked" id="loadingBlocked">
-        <div style="font-size: 24px; margin-bottom: 8px;">🚫</div>
-        <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">Đang tải model khác</div>
-        <div style="font-size: 12px; opacity: 0.9;">Vui lòng đợi model hiện tại tải xong</div>
-    </div>
-
     <!-- Waiting Message -->
     <div class="waiting-message" id="waitingMessage">
         <div class="waiting-icon">📱</div>
@@ -554,11 +495,10 @@
         let isARInitialized = false;
         let loadingTimeout = null;
 
-        // STRICT LOADING CONTROL
+        // STRICT LOADING CONTROL - Silent blocking
         let isCurrentlyLoading = false;
         let currentLoadingModelIndex = -1;
         let loadingStartTime = 0;
-        let blockedAttempts = 0;
         let loadingPromise = null;
 
         // Memory Management
@@ -574,8 +514,8 @@
         let strictLoading = true;
         let fpsCounter = 0;
 
-        // FREE ROTATION SYSTEM - Enhanced for continuous rotation
-        let rotationSpeed = 0.025; // Constant rotation speed
+        // FREE ROTATION SYSTEM
+        let rotationSpeed = 0.025;
         let rotationY = 0;
         let rotationX = 0;
         let rotationZ = 0;
@@ -600,7 +540,6 @@
             rotationIndicator: document.querySelector("#rotationIndicator"),
             waitingMessage: document.querySelector("#waitingMessage"),
             loadingOverlay: document.querySelector("#loadingOverlay"),
-            loadingBlocked: document.querySelector("#loadingBlocked"),
             loadingText: document.querySelector("#loadingText"),
             progressFill: document.querySelector("#progressFill"),
             progressText: document.querySelector("#progressText"),
@@ -632,42 +571,91 @@
             }
         }
 
-        // CLEAR CACHE WHEN LOADING NEW MODEL
-        function clearModelCache() {
-            console.log('🧹 Clearing model cache to free memory...');
+        // DISPOSE OLD MODEL COMPLETELY
+        function disposeModel(model) {
+            if (!model) return;
 
-            // Clear all cached models
-            modelCache.forEach((model, key) => {
-                if (model && model.traverse) {
-                    model.traverse((child) => {
-                        if (child.isMesh) {
-                            if (child.geometry) child.geometry.dispose();
-                            if (child.material) {
-                                if (Array.isArray(child.material)) {
-                                    child.material.forEach(material => material.dispose());
-                                } else {
-                                    child.material.dispose();
-                                }
-                            }
+            console.log('🗑️ Disposing model completely...');
+
+            model.traverse((child) => {
+                if (child.isMesh) {
+                    // Dispose geometry
+                    if (child.geometry) {
+                        child.geometry.dispose();
+                    }
+
+                    // Dispose materials
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(material => {
+                                if (material.map) material.map.dispose();
+                                if (material.normalMap) material.normalMap.dispose();
+                                if (material.roughnessMap) material.roughnessMap.dispose();
+                                if (material.metalnessMap) material.metalnessMap.dispose();
+                                material.dispose();
+                            });
+                        } else {
+                            if (child.material.map) child.material.map.dispose();
+                            if (child.material.normalMap) child.material.normalMap.dispose();
+                            if (child.material.roughnessMap) child.material.roughnessMap.dispose();
+                            if (child.material.metalnessMap) child.material.metalnessMap.dispose();
+                            child.material.dispose();
                         }
-                    });
+                    }
                 }
             });
 
+            // Remove from parent if exists
+            if (model.parent) {
+                model.parent.remove(model);
+            }
+
+            console.log('✅ Model disposed completely');
+        }
+
+        // CLEAR ALL OLD MODELS WHEN LOADING NEW ONE
+        function clearAllOldModels() {
+            console.log('🧹 Clearing all old models to optimize memory...');
+
+            // Remove all active models from scene and dispose them
+            activeModels.forEach((model, index) => {
+                anchors.forEach(anchor => {
+                    if (anchor && anchor.group) {
+                        anchor.group.remove(model);
+                    }
+                });
+                disposeModel(model);
+            });
+
+            // Clear active models map
+            activeModels.clear();
+
+            // Clear all cached models
+            modelCache.forEach((model, key) => {
+                disposeModel(model);
+            });
             modelCache.clear();
+
+            // Clear URL validation cache
             urlValidationCache.clear();
+
+            // Stop any existing animations
+            if (mixer) {
+                mixer.stopAllAction();
+                mixer = null;
+            }
 
             // Force garbage collection
             forceGarbageCollection();
 
-            console.log('✅ Model cache cleared successfully');
+            console.log('✅ All old models cleared successfully');
         }
 
         function cleanupMemory() {
             const currentMemory = getMemoryUsage();
             if (currentMemory > memoryThreshold) {
                 console.log(`Memory usage high (${currentMemory}MB), cleaning up...`);
-                clearModelCache();
+                clearAllOldModels();
             }
         }
 
@@ -701,7 +689,7 @@
             }
         }
 
-        // FREE ROTATION ALGORITHM - Continuous rotation
+        // FREE ROTATION ALGORITHM
         function updateFreeRotation(model, deltaTime) {
             if (!enableRotation || !model || !targetFound) return;
 
@@ -726,29 +714,14 @@
             elements.rotationIndicator.style.display = 'block';
         }
 
-        // STRICT LOADING CONTROL FUNCTIONS
+        // SILENT LOADING CONTROL - No notifications, just return
         function isLoadingBlocked() {
             return strictLoading && isCurrentlyLoading;
         }
 
-        function showLoadingBlocked() {
-            blockedAttempts++;
-            elements.loadingBlocked.style.display = 'block';
-            setStatus('blocked');
-
-            setTimeout(() => {
-                elements.loadingBlocked.style.display = 'none';
-                if (!isCurrentlyLoading) {
-                    setStatus('default');
-                }
-            }, 2000);
-
-            console.log(`🚫 Loading blocked! Attempt #${blockedAttempts} - Currently loading model ${currentLoadingModelIndex}`);
-        }
-
         function startLoading(modelIndex) {
             if (isLoadingBlocked()) {
-                showLoadingBlocked();
+                console.log(`🚫 Loading blocked silently - Currently loading model ${currentLoadingModelIndex}`);
                 return false;
             }
 
@@ -854,15 +827,8 @@
 
             stopAudio();
 
-            activeModels.forEach((model, index) => {
-                anchors.forEach(anchor => {
-                    if (anchor && anchor.group) {
-                        anchor.group.remove(model);
-                    }
-                });
-            });
-
-            activeModels.clear();
+            // Clear all old models
+            clearAllOldModels();
 
             // Reset loading state
             isCurrentlyLoading = false;
@@ -881,9 +847,6 @@
             floatingOffset = 0;
 
             hideModelInfo();
-
-            // Clear cache when loading new data
-            clearModelCache();
 
             console.log('Old data cleared successfully');
         }
@@ -927,15 +890,15 @@
             return null;
         }
 
-        // ENHANCED MODEL LOADING WITH STRICT CONTROL AND CACHE CLEARING
+        // OPTIMIZED MODEL LOADING WITH OLD MODEL CLEARING
         async function loadModel(fileLink, modelIndex) {
-            // STRICT LOADING CHECK - Block if already loading
+            // SILENT LOADING CHECK - Just return if blocked
             if (!startLoading(modelIndex)) {
                 return null;
             }
 
-            // CLEAR CACHE BEFORE LOADING NEW MODEL
-            clearModelCache();
+            // CLEAR ALL OLD MODELS BEFORE LOADING NEW ONE
+            clearAllOldModels();
 
             try {
                 if (!fileLink) {
@@ -943,11 +906,11 @@
                     return null;
                 }
 
-                console.log(`🔄 Starting to load HIGH QUALITY model ${modelIndex} from: ${fileLink}`);
+                console.log(`🔄 Starting to load optimized model ${modelIndex} from: ${fileLink}`);
 
-                // Show enhanced loading overlay
+                // Show loading overlay
                 elements.loadingOverlay.style.display = 'block';
-                updateProgress(0, `Đang tải model chất lượng cao ${modelIndex}...`);
+                updateProgress(0, `Đang tải model tối ưu ${modelIndex}...`);
 
                 // URL validation (can be skipped)
                 if (!skipValidation) {
@@ -958,14 +921,14 @@
                 }
 
                 // Create timestamped URL to avoid cache issues
-                const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}&hq=1`;
-                console.log(`📥 Loading HIGH QUALITY model from: ${timestampedUrl}`);
+                const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}&opt=1`;
+                console.log(`📥 Loading optimized model from: ${timestampedUrl}`);
 
                 // Set loading timeout
                 if (loadingTimeout) clearTimeout(loadingTimeout);
                 loadingTimeout = setTimeout(() => {
                     finishLoading();
-                    console.error(`❌ HIGH QUALITY model loading timeout for index ${modelIndex}`);
+                    console.error(`❌ Optimized model loading timeout for index ${modelIndex}`);
                 }, 30000);
 
                 const loader = new GLTFLoader();
@@ -976,13 +939,13 @@
                         timestampedUrl,
                         (gltf) => {
                             clearTimeout(loadingTimeout);
-                            updateProgress(90, "Thiết lập chất lượng cao...");
+                            updateProgress(90, "Thiết lập tối ưu...");
 
-                            console.log(`✅ HIGH QUALITY Model ${modelIndex} loaded successfully`);
+                            console.log(`✅ Optimized Model ${modelIndex} loaded successfully`);
 
                             const model = gltf.scene;
 
-                            // ENHANCED MODEL OPTIMIZATION FOR HIGH QUALITY
+                            // MODEL OPTIMIZATION
                             const box = new THREE.Box3().setFromObject(model);
                             const size = box.getSize(new THREE.Vector3());
                             const maxDimension = Math.max(size.x, size.y, size.z);
@@ -998,7 +961,7 @@
                                 model.position.sub(center.multiplyScalar(scale));
                             }
 
-                            // ENHANCED MATERIAL OPTIMIZATION FOR HIGH QUALITY
+                            // MATERIAL OPTIMIZATION
                             let meshCount = 0;
                             model.traverse((child) => {
                                 if (child.isMesh) {
@@ -1024,19 +987,19 @@
                                         }
                                     }
 
-                                    // Enhanced shadow settings for high quality
+                                    // Enhanced shadow settings
                                     child.castShadow = highQuality;
                                     child.receiveShadow = highQuality;
                                     child.frustumCulled = true;
-                                    child.matrixAutoUpdate = true; // Enable for smooth rotation
+                                    child.matrixAutoUpdate = true;
                                 }
                             });
 
-                            console.log(`HIGH QUALITY Model ${modelIndex} has ${meshCount} meshes`);
+                            console.log(`Optimized Model ${modelIndex} has ${meshCount} meshes`);
 
-                            // ENHANCED ANIMATION SETUP
+                            // ANIMATION SETUP
                             if (gltf.animations && gltf.animations.length > 0 && enableAnimations) {
-                                console.log(`HIGH QUALITY Model ${modelIndex} has ${gltf.animations.length} animations`);
+                                console.log(`Optimized Model ${modelIndex} has ${gltf.animations.length} animations`);
                                 if (mixer) {
                                     mixer.stopAllAction();
                                     mixer = null;
@@ -1051,7 +1014,7 @@
                                 });
                             }
 
-                            // Store enhanced model metadata
+                            // Store model metadata
                             model.userData = {
                                 index: modelIndex,
                                 lastUsed: Date.now(),
@@ -1062,20 +1025,20 @@
                                 hasAnimations: gltf.animations && gltf.animations.length > 0
                             };
 
-                            updateProgress(100, "Hoàn thành chất lượng cao!");
+                            updateProgress(100, "Hoàn thành tối ưu!");
 
-                            console.log(`🎉 HIGH QUALITY Model ${modelIndex} ready for FREE ROTATION display`);
+                            console.log(`🎉 Optimized Model ${modelIndex} ready for FREE ROTATION display`);
                             resolve(model);
                         },
                         (progress) => {
                             if (progress.lengthComputable) {
                                 const percentComplete = (progress.loaded / progress.total) * 80;
-                                updateProgress(percentComplete, `${Math.round(progress.loaded / 1024)}KB (HQ)`);
+                                updateProgress(percentComplete, `${Math.round(progress.loaded / 1024)}KB (Opt)`);
                             }
                         },
                         (error) => {
                             clearTimeout(loadingTimeout);
-                            console.error(`❌ Error loading HIGH QUALITY model ${modelIndex}:`, error);
+                            console.error(`❌ Error loading optimized model ${modelIndex}:`, error);
                             reject(error);
                         }
                     );
@@ -1086,8 +1049,8 @@
 
             } catch (error) {
                 if (loadingTimeout) clearTimeout(loadingTimeout);
-                console.error(`❌ Error loading HIGH QUALITY model ${modelIndex}:`, error);
-                showError("Lỗi tải model chất lượng cao", `Model ${modelIndex}: ${error.message}`);
+                console.error(`❌ Error loading optimized model ${modelIndex}:`, error);
+                showError("Lỗi tải model tối ưu", `Model ${modelIndex}: ${error.message}`);
                 return null;
             } finally {
                 finishLoading();
@@ -1219,7 +1182,7 @@
                 initAudio(data);
             }
 
-            elements.trackInfo.textContent = `Track ${trackIndex} - Index ${data.index} (Free Rotation)`;
+            elements.trackInfo.textContent = `Track ${trackIndex} - Index ${data.index} (Optimized)`;
             elements.trackInfo.style.display = 'block';
         }
 
@@ -1250,7 +1213,7 @@
                 elements.retryButton.style.display = 'none';
                 setStatus('loading');
 
-                console.log('🚀 Initializing HIGH QUALITY AR with FREE ROTATION...');
+                console.log('🚀 Initializing optimized AR with FREE ROTATION...');
 
                 mindarThree = new MindARThree({
                     container: document.querySelector("#container"),
@@ -1259,7 +1222,7 @@
 
                 const { renderer, scene, camera } = mindarThree;
 
-                // ENHANCED RENDERER SETTINGS FOR HIGH QUALITY
+                // RENDERER SETTINGS
                 const pixelRatio = Math.min(window.devicePixelRatio, 2);
                 renderer.setPixelRatio(pixelRatio);
                 renderer.shadowMap.enabled = true;
@@ -1270,10 +1233,10 @@
                 renderer.toneMapping = THREE.ACESFilmicToneMapping;
                 renderer.toneMappingExposure = 1.0;
 
-                console.log(`🎨 Renderer configured for HIGH quality with FREE ROTATION (pixel ratio: ${pixelRatio})`);
+                console.log(`🎨 Renderer configured for optimized quality with FREE ROTATION (pixel ratio: ${pixelRatio})`);
 
                 const maxTargets = Math.min(artifactData.length, 8);
-                console.log(`Creating ${maxTargets} HIGH QUALITY AR targets with FREE ROTATION`);
+                console.log(`Creating ${maxTargets} optimized AR targets with FREE ROTATION`);
 
                 for (let i = 0; i < maxTargets; i++) {
                     try {
@@ -1284,7 +1247,7 @@
                             targetFound = true;
                             currentTrackIndex = i;
 
-                            console.log(`🎯 Target ${i} found! Loading HIGH QUALITY artifact with FREE ROTATION at index ${i}`);
+                            console.log(`🎯 Target ${i} found! Loading optimized artifact with FREE ROTATION at index ${i}`);
 
                             const modelData = getModelDataForTrack(i);
                             if (!modelData) {
@@ -1292,7 +1255,7 @@
                                 return;
                             }
 
-                            // Show model info regardless of model loading
+                            // Show model info
                             showModelInfo(modelData, i);
 
                             if (!modelData.modelUrl) {
@@ -1300,29 +1263,19 @@
                                 return;
                             }
 
-                            console.log(`📦 Checking HIGH QUALITY model for FREE ROTATION index ${i}: ${modelData.name}`);
+                            console.log(`📦 Loading optimized model for FREE ROTATION index ${i}: ${modelData.name}`);
 
-                            // Check if model already exists for this index
-                            if (activeModels.has(i)) {
-                                const existingModel = activeModels.get(i);
-                                anchor.group.add(existingModel);
-                                console.log(`♻️ Reusing existing HIGH QUALITY model for FREE ROTATION index ${i}`);
-                                isModelLoaded = true;
-                            } else {
-                                // Load model with strict control and cache clearing
-                                console.log(`🔄 Loading HIGH QUALITY model with FREE ROTATION ${i}`);
-
-                                try {
-                                    const model = await loadModel(modelData.modelUrl, i);
-                                    if (model) {
-                                        activeModels.set(i, model);
-                                        anchor.group.add(model);
-                                        isModelLoaded = true;
-                                        console.log(`✅ HIGH QUALITY model ${i} loaded and added to scene with FREE ROTATION`);
-                                    }
-                                } catch (error) {
-                                    console.error(`❌ Failed to load HIGH QUALITY model ${i}:`, error);
+                            // Always load fresh model (old ones are cleared)
+                            try {
+                                const model = await loadModel(modelData.modelUrl, i);
+                                if (model) {
+                                    activeModels.set(i, model);
+                                    anchor.group.add(model);
+                                    isModelLoaded = true;
+                                    console.log(`✅ Optimized model ${i} loaded and added to scene with FREE ROTATION`);
                                 }
+                            } catch (error) {
+                                console.error(`❌ Failed to load optimized model ${i}:`, error);
                             }
                         };
 
@@ -1345,7 +1298,7 @@
                     }
                 }
 
-                // ENHANCED LIGHTING FOR HIGH QUALITY
+                // LIGHTING
                 scene.add(new THREE.AmbientLight(0x404040, 1.5));
 
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -1357,7 +1310,7 @@
                 directionalLight.shadow.camera.far = 50;
                 scene.add(directionalLight);
 
-                // Additional fill light for better quality
+                // Additional fill light
                 const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
                 fillLight.position.set(-5, 3, -5);
                 scene.add(fillLight);
@@ -1366,7 +1319,7 @@
                 setStatus('default');
                 isARInitialized = true;
 
-                console.log('🎉 HIGH QUALITY AR with FREE ROTATION initialized successfully');
+                console.log('🎉 Optimized AR with FREE ROTATION initialized successfully');
 
                 const clock = new THREE.Clock();
                 let fpsTime = 0;
@@ -1395,7 +1348,7 @@
                         }
                     }
 
-                    // Enhanced animation update
+                    // Animation update
                     if (mixer && enableAnimations && fpsCounter > 15) {
                         mixer.update(delta);
                     }
@@ -1410,13 +1363,13 @@
                 });
 
             } catch (error) {
-                console.error("❌ HIGH QUALITY AR with FREE ROTATION initialization error:", error);
-                showError("Không thể khởi tạo AR chất lượng cao", "Vui lòng cho phép truy cập camera");
+                console.error("❌ Optimized AR with FREE ROTATION initialization error:", error);
+                showError("Không thể khởi tạo AR tối ưu", "Vui lòng cho phép truy cập camera");
             }
         }
 
         function cleanup() {
-            console.log('🧹 Starting HIGH QUALITY cleanup with cache clearing...');
+            console.log('🧹 Starting optimized cleanup...');
 
             if (loadingTimeout) {
                 clearTimeout(loadingTimeout);
@@ -1438,30 +1391,8 @@
                 mixer = null;
             }
 
-            activeModels.forEach((model, index) => {
-                anchors.forEach(anchor => {
-                    if (anchor && anchor.group) {
-                        anchor.group.remove(model);
-                    }
-                });
-
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        if (child.geometry) child.geometry.dispose();
-                        if (child.material) {
-                            if (Array.isArray(child.material)) {
-                                child.material.forEach(material => material.dispose());
-                            } else {
-                                child.material.dispose();
-                            }
-                        }
-                    }
-                });
-            });
-            activeModels.clear();
-
-            // Clear all caches
-            clearModelCache();
+            // Clear all models
+            clearAllOldModels();
 
             stopAudio();
             isModelLoaded = false;
@@ -1475,13 +1406,11 @@
             rotationX = 0;
             rotationZ = 0;
             floatingOffset = 0;
-            blockedAttempts = 0;
 
             elements.rotationIndicator.style.display = 'none';
-            elements.loadingBlocked.style.display = 'none';
 
             forceGarbageCollection();
-            console.log('✅ HIGH QUALITY cleanup with cache clearing completed');
+            console.log('✅ Optimized cleanup completed');
         }
 
         // Event listeners
@@ -1522,13 +1451,13 @@
         }, false);
 
         window.addEventListener('load', () => {
-            console.log('📱 HIGH QUALITY WebView with FREE ROTATION loaded, waiting for data from React Native...');
+            console.log('📱 Optimized WebView with FREE ROTATION loaded, waiting for data from React Native...');
 
             if (window.ReactNativeWebView) {
                 window.ReactNativeWebView.postMessage(JSON.stringify({
                     type: 'WEBVIEW_READY',
                     timestamp: Date.now(),
-                    quality: 'HIGH',
+                    quality: 'OPTIMIZED',
                     rotation: 'FREE'
                 }));
             }
@@ -1536,7 +1465,7 @@
 
         window.addEventListener('beforeunload', cleanup);
 
-        // Enhanced memory cleanup on visibility change
+        // Memory cleanup on visibility change
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 if (mixer) mixer.timeScale = 0;
@@ -1551,10 +1480,10 @@
             }
         });
 
-        // Performance monitoring for high quality
+        // Performance monitoring
         setInterval(() => {
             if (fpsCounter < 20) {
-                console.warn('⚠️ Low FPS detected in HIGH QUALITY mode with FREE ROTATION');
+                console.warn('⚠️ Low FPS detected in optimized mode with FREE ROTATION');
             }
         }, 10000);
 
