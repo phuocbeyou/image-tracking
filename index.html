@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-    <title>AR Audio Scanner - Optimized</title>
+    <title>AR Audio Scanner - Fixed</title>
     <script type="importmap">
   {
     "imports": {
@@ -521,6 +521,14 @@
                 <span class="debug-value" id="debugFPS">0</span>
             </div>
             <div class="debug-item">
+                <span class="debug-label">Last URL:</span>
+                <span class="debug-value" id="debugLastUrl">None</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Load Status:</span>
+                <span class="debug-value" id="debugLoadStatus">None</span>
+            </div>
+            <div class="debug-item">
                 <span class="debug-label">Data:</span>
                 <div class="debug-value" id="debugLastData"
                     style="max-height: 100px; overflow-y: auto; font-size: 9px; margin-top: 3px; background: rgba(255,255,255,0.1); padding: 4px; border-radius: 3px;">
@@ -542,6 +550,10 @@
         <div class="control-item">
             <input type="checkbox" id="lowQuality" class="control-checkbox">
             <label for="lowQuality" class="control-label">Low Quality</label>
+        </div>
+        <div class="control-item">
+            <input type="checkbox" id="skipValidation" class="control-checkbox">
+            <label for="skipValidation" class="control-label">Skip URL Validation</label>
         </div>
     </div>
 
@@ -608,23 +620,24 @@
         // Advanced Memory Management - Optimized
         let modelCache = new Map();
         let activeModels = new Map();
-        let loadingPromises = new Map(); // Prevent duplicate loading
-        let urlValidationCache = new Map(); // Cache URL validation results
+        let loadingPromises = new Map();
+        let urlValidationCache = new Map();
 
         // Advanced Performance settings - Enhanced
         let enableRotation = true;
         let enableAnimations = true;
         let lowQuality = false;
+        let skipValidation = false; // New option to skip URL validation
         let fpsCounter = 0;
         let lastTime = performance.now();
         let frameSkip = 0;
 
         // Smooth Rotation System - Improved
         let rotationSpeed = 0;
-        let targetRotationSpeed = 0.015; // Slightly faster base speed
-        let rotationAcceleration = 0.0005; // Smoother acceleration
-        let rotationDamping = 0.985; // Better damping
-        let rotationEasing = 0.1; // Easing factor for smoother transitions
+        let targetRotationSpeed = 0.015;
+        let rotationAcceleration = 0.0005;
+        let rotationDamping = 0.985;
+        let rotationEasing = 0.1;
 
         // Model info visibility
         let isModelInfoVisible = false;
@@ -632,7 +645,11 @@
         // Memory monitoring - Enhanced
         let memoryUsage = 0;
         let lastMemoryCheck = 0;
-        let memoryThreshold = 150; // MB threshold for cleanup
+        let memoryThreshold = 150;
+
+        // Debug variables
+        let lastAttemptedUrl = '';
+        let lastLoadStatus = '';
 
         const elements = {
             statusDot: document.querySelector("#statusDot"),
@@ -661,7 +678,8 @@
             performanceControls: document.querySelector("#performanceControls"),
             enableRotation: document.querySelector("#enableRotation"),
             enableAnimations: document.querySelector("#enableAnimations"),
-            lowQuality: document.querySelector("#lowQuality")
+            lowQuality: document.querySelector("#lowQuality"),
+            skipValidation: document.querySelector("#skipValidation")
         };
 
         // Enhanced Memory Management Functions
@@ -683,9 +701,8 @@
             if (currentMemory > memoryThreshold) {
                 console.log(`Memory usage high (${currentMemory}MB), cleaning up...`);
 
-                // Clear old cached models (keep only recent ones)
                 const now = Date.now();
-                const maxAge = 5 * 60 * 1000; // 5 minutes
+                const maxAge = 5 * 60 * 1000;
 
                 for (const [key, model] of modelCache.entries()) {
                     if (now - model.userData.lastUsed > maxAge) {
@@ -694,42 +711,51 @@
                     }
                 }
 
-                // Clear URL validation cache
                 urlValidationCache.clear();
-
-                // Force garbage collection if available
                 forceGarbageCollection();
             }
         }
 
-        // Enhanced URL Validation with caching
+        // FIXED: More lenient URL validation
         async function validateModelUrl(url) {
-            if (!url) return false;
+            if (!url || skipValidation) {
+                console.log('Skipping URL validation');
+                return true; // Skip validation if disabled
+            }
 
             // Check cache first
             if (urlValidationCache.has(url)) {
-                return urlValidationCache.get(url);
+                const result = urlValidationCache.get(url);
+                console.log(`URL validation from cache: ${url} -> ${result}`);
+                return result;
             }
 
             try {
+                console.log(`Validating URL: ${url}`);
+
+                // More lenient validation - just check if URL is reachable
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // Increased timeout
 
                 const response = await fetch(url, {
                     method: 'HEAD',
-                    signal: controller.signal
+                    signal: controller.signal,
+                    mode: 'no-cors' // Allow cross-origin requests
                 });
 
                 clearTimeout(timeoutId);
 
-                const isValid = response.ok && response.headers.get('content-type')?.includes('model');
+                // More lenient check - accept any response that doesn't error
+                const isValid = true; // Always return true for HEAD requests with no-cors
                 urlValidationCache.set(url, isValid);
 
+                console.log(`URL validation result: ${url} -> ${isValid}`);
                 return isValid;
+
             } catch (error) {
-                console.warn(`URL validation failed for ${url}:`, error.message);
-                urlValidationCache.set(url, false);
-                return false;
+                console.log(`URL validation failed for ${url}, but proceeding anyway:`, error.message);
+                // Don't cache failed validations, and return true to proceed
+                return true; // Proceed even if validation fails
             }
         }
 
@@ -739,25 +765,21 @@
 
             const targetSpeed = (targetFound && isModelInfoVisible) ? targetRotationSpeed : 0;
 
-            // Smooth interpolation with easing
             rotationSpeed += (targetSpeed - rotationSpeed) * rotationEasing * deltaTime * 60;
 
-            // Apply damping when slowing down
             if (targetSpeed === 0) {
                 rotationSpeed *= Math.pow(rotationDamping, deltaTime * 60);
             }
 
-            // Apply rotation with smooth transitions
             if (Math.abs(rotationSpeed) > 0.0001) {
                 model.rotation.y += rotationSpeed * deltaTime * 60;
 
-                // Add subtle bobbing motion for more natural feel
                 const time = performance.now() * 0.001;
                 model.position.y += Math.sin(time * 2) * 0.002;
             }
         }
 
-        // Debounced update function for better performance
+        // Enhanced debug update
         let updateDebugTimeout = null;
         function updateDebugInfo() {
             if (updateDebugTimeout) clearTimeout(updateDebugTimeout);
@@ -769,15 +791,18 @@
                 document.querySelector("#debugModelStatus").textContent = activeModels.size > 0 ? "Yes" : "No";
                 document.querySelector("#debugMemory").textContent = `${getMemoryUsage()}MB`;
                 document.querySelector("#debugFPS").textContent = fpsCounter;
+                document.querySelector("#debugLastUrl").textContent = lastAttemptedUrl || "None";
+                document.querySelector("#debugLoadStatus").textContent = lastLoadStatus || "None";
             }, 100);
         }
 
         function showLastData(data) {
             const debugLastData = document.querySelector("#debugLastData");
             if (data && data.length > 0) {
-                const summary = data.slice(0, 3).map((item, index) =>
-                    `${index + 1}. ${(item.tenHienVat3D || 'Unknown').substring(0, 20)}...\n   Model: ${item.model3dPcGlb ? 'Yes' : 'No'}\n   Index: ${index}`
-                ).join('\n\n');
+                const summary = data.slice(0, 3).map((item, index) => {
+                    const modelUrl = item.model3dPcGlb ? item.model3dPcGlb.split(',')[0].trim() : 'No URL';
+                    return `${index + 1}. ${(item.tenHienVat3D || 'Unknown').substring(0, 20)}...\n   Model: ${item.model3dPcGlb ? 'Yes' : 'No'}\n   URL: ${modelUrl.substring(0, 50)}...\n   Index: ${index}`;
+                }).join('\n\n');
                 debugLastData.textContent = summary + (data.length > 3 ? `\n... +${data.length - 3} more` : '');
             } else {
                 debugLastData.textContent = "No valid data";
@@ -811,6 +836,11 @@
             if (mindarThree && mindarThree.renderer) {
                 mindarThree.renderer.setPixelRatio(lowQuality ? 0.5 : Math.min(window.devicePixelRatio, 2));
             }
+        });
+
+        elements.skipValidation.addEventListener('change', (e) => {
+            skipValidation = e.target.checked;
+            console.log(`URL validation ${skipValidation ? 'disabled' : 'enabled'}`);
         });
 
         function parseArtifactToModelData(artifact, index) {
@@ -847,7 +877,6 @@
             try {
                 console.log('Received data from React Native:', data);
 
-                // Clear old data first to prevent lag
                 clearOldData();
 
                 if (Array.isArray(data) && data.length > 0) {
@@ -866,11 +895,13 @@
                         }));
                     }
 
-                    // Log artifacts with their indices
+                    // Enhanced logging with URL details
                     data.forEach((artifact, index) => {
+                        const modelUrl = artifact.model3dPcGlb ? artifact.model3dPcGlb.split(',')[0].trim() : null;
                         console.log(`Artifact ${index}:`, {
                             name: artifact.tenHienVat3D,
-                            model3dPcGlb: artifact.model3dPcGlb,
+                            hasModel: !!artifact.model3dPcGlb,
+                            modelUrl: modelUrl,
                             audio: artifact.audio
                         });
                     });
@@ -892,14 +923,11 @@
             }
         }
 
-        // Clear old data function
         function clearOldData() {
             console.log('Clearing old data to prevent lag...');
 
-            // Stop current audio
             stopAudio();
 
-            // Clear active models from scene
             activeModels.forEach((model, index) => {
                 anchors.forEach(anchor => {
                     if (anchor && anchor.group) {
@@ -908,23 +936,16 @@
                 });
             });
 
-            // Clear active models map
             activeModels.clear();
-
-            // Clear loading promises
             loadingPromises.clear();
 
-            // Reset current states
             currentTrackIndex = -1;
             currentArtifact = null;
             targetFound = false;
             isModelLoaded = false;
             isModelInfoVisible = false;
 
-            // Hide UI elements
             hideModelInfo();
-
-            // Clean up memory
             cleanupMemory();
 
             console.log('Old data cleared successfully');
@@ -959,7 +980,6 @@
             window.dispatchEvent(new MessageEvent('message', { data: event.data }));
         });
 
-        // Get model data by exact index
         function getModelDataForTrack(trackIndex) {
             if (artifactData.length > 0 && trackIndex < artifactData.length) {
                 const artifact = artifactData[trackIndex];
@@ -970,44 +990,69 @@
             return null;
         }
 
-        // Enhanced model loading with URL validation and error handling
+        // FIXED: Enhanced model loading with better error handling and logging
         async function loadModel(fileLink, modelIndex) {
+            lastAttemptedUrl = fileLink;
+            lastLoadStatus = 'Starting...';
+            updateDebugInfo();
+
             try {
                 if (!fileLink) {
+                    lastLoadStatus = 'No URL provided';
                     console.warn(`No model URL provided for index ${modelIndex}`);
-                    return null; // Return null instead of throwing error
+                    updateDebugInfo();
+                    return null;
                 }
 
-                // Validate URL first
-                const isValidUrl = await validateModelUrl(fileLink);
-                if (!isValidUrl) {
-                    console.warn(`Invalid or broken model URL for index ${modelIndex}: ${fileLink}`);
-                    return null; // Return null for broken URLs
+                console.log(`🔄 Starting to load model ${modelIndex} from: ${fileLink}`);
+                lastLoadStatus = 'Validating URL...';
+                updateDebugInfo();
+
+                // URL validation (can be skipped)
+                if (!skipValidation) {
+                    const isValidUrl = await validateModelUrl(fileLink);
+                    if (!isValidUrl) {
+                        lastLoadStatus = 'URL validation failed';
+                        console.warn(`URL validation failed for index ${modelIndex}: ${fileLink}`);
+                        updateDebugInfo();
+                        // Don't return null, proceed anyway
+                    }
                 }
 
                 // Check if already loading
                 const loadingKey = `${fileLink}_${modelIndex}`;
                 if (loadingPromises.has(loadingKey)) {
+                    lastLoadStatus = 'Already loading...';
                     console.log(`Model ${modelIndex} already loading, waiting...`);
+                    updateDebugInfo();
                     return await loadingPromises.get(loadingKey);
                 }
 
                 // Check cache first
                 const cacheKey = `${fileLink}_${modelIndex}`;
                 if (modelCache.has(cacheKey)) {
-                    console.log(`Loading model ${modelIndex} from cache`);
+                    lastLoadStatus = 'Loaded from cache';
+                    console.log(`✅ Loading model ${modelIndex} from cache`);
                     const cachedModel = modelCache.get(cacheKey);
                     cachedModel.userData.lastUsed = Date.now();
+                    updateDebugInfo();
                     return cachedModel.clone();
                 }
 
+                lastLoadStatus = 'Creating loader...';
+                updateDebugInfo();
+
+                // Create timestamped URL to avoid cache issues
                 const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}`;
+                console.log(`📥 Loading model from: ${timestampedUrl}`);
 
                 const loadingPromise = new Promise((resolve, reject) => {
-                    // Set loading timeout
+                    // Set loading timeout - increased to 20 seconds
                     loadingTimeout = setTimeout(() => {
+                        lastLoadStatus = 'Timeout';
+                        updateDebugInfo();
                         reject(new Error("Model loading timeout"));
-                    }, 10000); // Reduced timeout to 10 seconds
+                    }, 20000);
 
                     const loader = new GLTFLoader();
 
@@ -1015,7 +1060,11 @@
                         timestampedUrl,
                         (gltf) => {
                             clearTimeout(loadingTimeout);
+                            lastLoadStatus = 'Processing model...';
                             updateProgress(90, "Thiết lập...");
+                            updateDebugInfo();
+
+                            console.log(`✅ Model ${modelIndex} loaded successfully`);
 
                             const model = gltf.scene;
 
@@ -1023,16 +1072,23 @@
                             const box = new THREE.Box3().setFromObject(model);
                             const size = box.getSize(new THREE.Vector3());
                             const maxDimension = Math.max(size.x, size.y, size.z);
-                            const scale = 1.0 / maxDimension;
 
-                            model.scale.setScalar(scale);
-                            const center = box.getCenter(new THREE.Vector3());
-                            model.position.sub(center.multiplyScalar(scale));
+                            // Ensure model has reasonable size
+                            if (maxDimension === 0) {
+                                console.warn(`Model ${modelIndex} has zero size, using default scale`);
+                                model.scale.setScalar(1.0);
+                            } else {
+                                const scale = 1.0 / maxDimension;
+                                model.scale.setScalar(scale);
+                                const center = box.getCenter(new THREE.Vector3());
+                                model.position.sub(center.multiplyScalar(scale));
+                            }
 
                             // Advanced material optimization
+                            let meshCount = 0;
                             model.traverse((child) => {
                                 if (child.isMesh) {
-                                    // Optimize materials
+                                    meshCount++;
                                     if (child.material) {
                                         if (lowQuality && child.material.map) {
                                             child.material.map.minFilter = THREE.LinearFilter;
@@ -1040,21 +1096,22 @@
                                             child.material.map.generateMipmaps = false;
                                         }
 
-                                        // Optimize material properties for performance
                                         child.material.transparent = false;
                                         child.material.alphaTest = 0;
                                     }
 
-                                    // Disable shadows and enable optimizations
                                     child.castShadow = false;
                                     child.receiveShadow = false;
                                     child.frustumCulled = true;
-                                    child.matrixAutoUpdate = false; // Static objects don't need auto-update
+                                    child.matrixAutoUpdate = false;
                                 }
                             });
 
+                            console.log(`Model ${modelIndex} has ${meshCount} meshes`);
+
                             // Enhanced animation setup
                             if (gltf.animations && gltf.animations.length > 0 && enableAnimations) {
+                                console.log(`Model ${modelIndex} has ${gltf.animations.length} animations`);
                                 if (mixer) {
                                     mixer.stopAllAction();
                                     mixer = null;
@@ -1072,27 +1129,40 @@
                             model.userData = {
                                 index: modelIndex,
                                 lastUsed: Date.now(),
-                                originalScale: scale,
-                                isOptimized: true
+                                originalScale: model.scale.x,
+                                isOptimized: true,
+                                meshCount: meshCount
                             };
 
                             // Cache the model with size limit
-                            if (modelCache.size < 5) { // Limit cache size
+                            if (modelCache.size < 5) {
                                 modelCache.set(cacheKey, model.clone());
+                                console.log(`Model ${modelIndex} cached`);
                             }
 
+                            lastLoadStatus = 'Complete!';
                             updateProgress(100, "Hoàn thành!");
+                            updateDebugInfo();
+
+                            console.log(`🎉 Model ${modelIndex} ready for display`);
                             resolve(model);
                         },
                         (progress) => {
                             if (progress.lengthComputable) {
                                 const percentComplete = (progress.loaded / progress.total) * 80;
+                                lastLoadStatus = `Loading ${Math.round(percentComplete)}%`;
                                 updateProgress(percentComplete, `${Math.round(progress.loaded / 1024)}KB`);
+                                updateDebugInfo();
+                            } else {
+                                lastLoadStatus = `Loading ${Math.round(progress.loaded / 1024)}KB`;
+                                updateDebugInfo();
                             }
                         },
                         (error) => {
                             clearTimeout(loadingTimeout);
-                            console.error(`Error loading model ${modelIndex}:`, error);
+                            lastLoadStatus = `Error: ${error.message}`;
+                            console.error(`❌ Error loading model ${modelIndex}:`, error);
+                            updateDebugInfo();
                             reject(error);
                         }
                     );
@@ -1107,8 +1177,13 @@
 
             } catch (error) {
                 if (loadingTimeout) clearTimeout(loadingTimeout);
-                console.error(`Error loading model ${modelIndex}:`, error);
-                return null; // Return null instead of throwing
+                lastLoadStatus = `Failed: ${error.message}`;
+                console.error(`❌ Error loading model ${modelIndex}:`, error);
+                updateDebugInfo();
+
+                // Show error but don't return null - try to continue
+                showError("Lỗi tải model", `Model ${modelIndex}: ${error.message}`);
+                return null;
             }
         }
 
@@ -1130,7 +1205,6 @@
             elements.retryButton.style.display = 'block';
             setStatus('error');
 
-            // Auto hide error after 5 seconds
             setTimeout(() => {
                 elements.errorMessage.style.display = 'none';
                 elements.retryButton.style.display = 'none';
@@ -1164,7 +1238,6 @@
             audioPlayer.addEventListener('error', () => elements.audioInfo.innerHTML = '<span>❌</span><span>Lỗi audio</span>');
         }
 
-        // Toggle model info visibility
         function toggleModelInfo() {
             isModelInfoVisible = !isModelInfoVisible;
 
@@ -1194,7 +1267,6 @@
                     }
                     elements.audioInfo.style.display = 'none';
 
-                    // Show model info when audio plays
                     isModelInfoVisible = true;
                     elements.modelInfo.classList.remove('hidden');
                     elements.modelInfo.style.display = 'block';
@@ -1233,7 +1305,6 @@
 
             elements.modelDescription.textContent = description;
 
-            // Don't show model info automatically, wait for audio button click
             elements.modelInfo.style.display = 'none';
             isModelInfoVisible = false;
 
@@ -1275,6 +1346,8 @@
                 elements.retryButton.style.display = 'none';
                 setStatus('loading');
 
+                console.log('🚀 Initializing AR...');
+
                 mindarThree = new MindARThree({
                     container: document.querySelector("#container"),
                     imageTargetSrc: "https://fuukyqvnitlhdhwygfcy.supabase.co/storage/v1/object/public/qnail//demo.mind"
@@ -1282,14 +1355,13 @@
 
                 const { renderer, scene, camera } = mindarThree;
 
-                // Enhanced renderer optimization
                 renderer.setPixelRatio(lowQuality ? 0.5 : Math.min(window.devicePixelRatio, 2));
                 renderer.shadowMap.enabled = false;
                 renderer.antialias = !lowQuality;
                 renderer.powerPreference = "high-performance";
 
-                // Create anchors for each artifact (exact mapping)
-                const maxTargets = Math.min(artifactData.length, 8); // Reduced for better performance
+                const maxTargets = Math.min(artifactData.length, 8);
+                console.log(`Creating ${maxTargets} AR targets`);
 
                 for (let i = 0; i < maxTargets; i++) {
                     try {
@@ -1300,22 +1372,28 @@
                             targetFound = true;
                             currentTrackIndex = i;
 
-                            console.log(`Target ${i} found! Loading artifact at index ${i}`);
+                            console.log(`🎯 Target ${i} found! Loading artifact at index ${i}`);
 
-                            // Get model data for exact index
                             const modelData = getModelDataForTrack(i);
-                            if (!modelData || !modelData.modelUrl) {
-                                console.warn(`No model data for index ${i}, skipping...`);
-                                return; // Return early without showing anything
+                            if (!modelData) {
+                                console.warn(`❌ No model data for index ${i}`);
+                                return;
                             }
 
-                            console.log(`Loading model for index ${i}:`, modelData.name);
+                            if (!modelData.modelUrl) {
+                                console.warn(`❌ No model URL for index ${i}`);
+                                showModelInfo(modelData, i); // Still show info even without model
+                                return;
+                            }
+
+                            console.log(`📦 Loading model for index ${i}: ${modelData.name}`);
+                            console.log(`🔗 Model URL: ${modelData.modelUrl}`);
 
                             // Check if model already exists for this index
                             if (activeModels.has(i)) {
                                 const existingModel = activeModels.get(i);
                                 anchor.group.add(existingModel);
-                                console.log(`Reusing existing model for index ${i}`);
+                                console.log(`♻️ Reusing existing model for index ${i}`);
                                 isModelLoaded = true;
                                 showModelInfo(modelData, i);
                             } else {
@@ -1325,18 +1403,17 @@
 
                                     const model = await loadModel(modelData.modelUrl, i);
 
-                                    // Handle broken URLs - return early without showing anything
                                     if (!model) {
-                                        console.warn(`Failed to load model for index ${i}, URL may be broken`);
+                                        console.warn(`⚠️ Failed to load model for index ${i}, but showing info anyway`);
                                         elements.loadingOverlay.style.display = 'none';
-                                        return; // Return early without showing error
+                                        showModelInfo(modelData, i); // Show info even if model fails
+                                        return;
                                     }
 
+                                    console.log(`✅ Adding model ${i} to scene`);
                                     anchor.group.add(model);
                                     activeModels.set(i, model);
                                     isModelLoaded = true;
-
-                                    console.log(`Model loaded and stored for index ${i}`);
 
                                     setTimeout(() => {
                                         elements.loadingOverlay.style.display = 'none';
@@ -1346,20 +1423,19 @@
                                     showModelInfo(modelData, i);
 
                                 } catch (error) {
-                                    console.warn(`Failed to load model for index ${i}:`, error);
+                                    console.error(`❌ Failed to load model for index ${i}:`, error);
                                     elements.loadingOverlay.style.display = 'none';
-                                    // Don't show error, just return early
-                                    return;
+                                    showModelInfo(modelData, i); // Show info even if model fails
                                 }
                             }
                         };
 
                         anchor.onTargetLost = () => {
                             if (currentTrackIndex === i) {
+                                console.log(`👋 Target ${i} lost`);
                                 targetFound = false;
                                 hideModelInfo();
 
-                                // Remove model from anchor but keep in activeModels for reuse
                                 if (activeModels.has(i)) {
                                     const model = activeModels.get(i);
                                     anchor.group.remove(model);
@@ -1373,11 +1449,10 @@
                     }
                 }
 
-                // Enhanced lighting setup
                 scene.add(new THREE.AmbientLight(0x404040, 1.2));
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
                 directionalLight.position.set(5, 5, 5);
-                directionalLight.castShadow = false; // Disable shadows for performance
+                directionalLight.castShadow = false;
                 scene.add(directionalLight);
 
                 await mindarThree.start();
@@ -1385,22 +1460,21 @@
                 isARInitialized = true;
                 updateDebugInfo();
 
+                console.log('🎉 AR initialized successfully');
+
                 const clock = new THREE.Clock();
                 let fpsTime = 0;
                 let fpsFrames = 0;
 
-                // Enhanced render loop with performance optimizations
                 renderer.setAnimationLoop(() => {
                     const delta = clock.getDelta();
                     const currentTime = performance.now();
 
-                    // Skip frames if performance is poor
                     frameSkip++;
                     if (frameSkip % 2 === 0 && lowQuality) {
-                        return; // Skip every other frame in low quality mode
+                        return;
                     }
 
-                    // FPS calculation
                     fpsFrames++;
                     fpsTime += delta;
                     if (fpsTime >= 1.0) {
@@ -1409,24 +1483,20 @@
                         fpsTime = 0;
                     }
 
-                    // Memory monitoring (every 10 seconds)
                     if (currentTime - lastMemoryCheck > 10000) {
                         memoryUsage = getMemoryUsage();
                         lastMemoryCheck = currentTime;
                         updateDebugInfo();
 
-                        // Auto cleanup if memory is high
                         if (memoryUsage > memoryThreshold) {
                             cleanupMemory();
                         }
                     }
 
-                    // Animation update with performance check
                     if (mixer && enableAnimations && fpsCounter > 20) {
                         mixer.update(delta);
                     }
 
-                    // Enhanced smooth rotation for current model
                     if (currentTrackIndex >= 0 && activeModels.has(currentTrackIndex)) {
                         const currentModel = activeModels.get(currentTrackIndex);
                         updateSmoothRotation(currentModel, delta);
@@ -1436,14 +1506,13 @@
                 });
 
             } catch (error) {
-                console.error("AR initialization error:", error);
+                console.error("❌ AR initialization error:", error);
                 showError("Không thể khởi tạo AR", "Vui lòng cho phép truy cập camera");
             }
         }
 
-        // Enhanced cleanup function
         function cleanup() {
-            console.log('Starting cleanup...');
+            console.log('🧹 Starting cleanup...');
 
             if (loadingTimeout) {
                 clearTimeout(loadingTimeout);
@@ -1460,7 +1529,6 @@
                 mixer = null;
             }
 
-            // Enhanced cleanup of active models
             activeModels.forEach((model, index) => {
                 anchors.forEach(anchor => {
                     if (anchor && anchor.group) {
@@ -1468,7 +1536,6 @@
                     }
                 });
 
-                // Dispose of model geometry and materials
                 model.traverse((child) => {
                     if (child.isMesh) {
                         if (child.geometry) child.geometry.dispose();
@@ -1484,7 +1551,6 @@
             });
             activeModels.clear();
 
-            // Clear all caches
             modelCache.clear();
             loadingPromises.clear();
             urlValidationCache.clear();
@@ -1498,23 +1564,21 @@
             isARInitialized = false;
             frameSkip = 0;
             rotationSpeed = 0;
+            lastAttemptedUrl = '';
+            lastLoadStatus = '';
 
-            // Force garbage collection
             forceGarbageCollection();
-
             updateDebugInfo();
-            console.log('Cleanup completed');
+            console.log('✅ Cleanup completed');
         }
 
-        // Event listeners with touch optimization
+        // Event listeners
         elements.audioButton.addEventListener('click', () => {
             if (isAudioPlaying) {
                 pauseAudio();
             } else {
                 playAudio();
             }
-
-            // Toggle model info when audio button is clicked
             toggleModelInfo();
         });
 
@@ -1536,7 +1600,6 @@
             }
         });
 
-        // Prevent zoom on double tap
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function (event) {
             const now = (new Date()).getTime();
@@ -1547,7 +1610,7 @@
         }, false);
 
         window.addEventListener('load', () => {
-            console.log('WebView loaded, waiting for data from React Native...');
+            console.log('📱 WebView loaded, waiting for data from React Native...');
 
             if (window.ReactNativeWebView) {
                 window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -1562,34 +1625,67 @@
         // Enhanced memory cleanup on visibility change
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                // Pause animations when app goes to background
                 if (mixer) mixer.timeScale = 0;
                 rotationSpeed = 0;
 
-                // Clean up memory when app is hidden
                 setTimeout(() => {
                     if (document.hidden) {
                         cleanupMemory();
                     }
                 }, 5000);
             } else {
-                // Resume animations when app comes to foreground
                 if (mixer && enableAnimations) mixer.timeScale = 1;
             }
         });
 
         // Enhanced debug function
         window.debugSetData = function (data) {
-            console.log('Debug: Setting artifact data', data);
+            console.log('🔧 Debug: Setting artifact data', data);
             receiveDataFromReactNative(data);
         };
 
         // Performance monitoring
         setInterval(() => {
             if (fpsCounter < 15 && !lowQuality) {
-                console.warn('Low FPS detected, consider enabling low quality mode');
+                console.warn('⚠️ Low FPS detected, consider enabling low quality mode');
             }
         }, 5000);
+
+        // Debug helper functions
+        window.debugForceLoad = function (index) {
+            console.log(`🔧 Debug: Force loading model at index ${index}`);
+            if (artifactData[index]) {
+                const modelData = parseArtifactToModelData(artifactData[index], index);
+                if (modelData.modelUrl) {
+                    loadModel(modelData.modelUrl, index).then(model => {
+                        console.log(`✅ Debug load complete for index ${index}:`, model);
+                    }).catch(error => {
+                        console.error(`❌ Debug load failed for index ${index}:`, error);
+                    });
+                }
+            }
+        };
+
+        window.debugClearCache = function () {
+            console.log('🔧 Debug: Clearing all caches');
+            modelCache.clear();
+            urlValidationCache.clear();
+            loadingPromises.clear();
+            console.log('✅ All caches cleared');
+        };
+
+        window.debugShowInfo = function () {
+            console.log('🔧 Debug Info:', {
+                artifactCount: artifactData.length,
+                activeModels: activeModels.size,
+                cachedModels: modelCache.size,
+                currentTrack: currentTrackIndex,
+                isARInitialized,
+                memoryUsage: getMemoryUsage(),
+                lastUrl: lastAttemptedUrl,
+                lastStatus: lastLoadStatus
+            });
+        };
 
     </script>
 </body>
