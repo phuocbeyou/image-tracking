@@ -7,14 +7,14 @@
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
     <title>AR Audio Scanner</title>
     <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-        "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
-      }
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
     }
-    </script>
+  }
+  </script>
     <style>
         * {
             margin: 0;
@@ -184,12 +184,13 @@
             border-radius: 2px;
         }
 
-        /* Mobile-optimized model info */
+        /* Mobile-optimized model info - Updated positioning */
         .model-info {
             position: fixed;
-            bottom: env(safe-area-inset-bottom, 15px);
+            top: calc(env(safe-area-inset-top, 15px) + 70px);
+            /* Position below audio button */
             left: 15px;
-            right: 15px;
+            max-width: 300px;
             background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(10px);
             border-radius: 12px;
@@ -200,6 +201,14 @@
             color: white;
             max-height: 30vh;
             overflow-y: auto;
+            transform: translateY(0);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        .model-info.hidden {
+            transform: translateY(-10px);
+            opacity: 0;
         }
 
         /* Mobile-optimized audio controls */
@@ -505,6 +514,14 @@
                 <span class="debug-value" id="debugModelStatus">No</span>
             </div>
             <div class="debug-item">
+                <span class="debug-label">Memory:</span>
+                <span class="debug-value" id="debugMemory">0MB</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">FPS:</span>
+                <span class="debug-value" id="debugFPS">0</span>
+            </div>
+            <div class="debug-item">
                 <span class="debug-label">Data:</span>
                 <div class="debug-value" id="debugLastData"
                     style="max-height: 100px; overflow-y: auto; font-size: 9px; margin-top: 3px; background: rgba(255,255,255,0.1); padding: 4px; border-radius: 3px;">
@@ -516,8 +533,8 @@
     <!-- Performance Controls -->
     <div class="performance-controls" id="performanceControls">
         <div class="control-item">
-            <input type="checkbox" id="enableRotation" class="control-checkbox">
-            <label for="enableRotation" class="control-label">Rotation</label>
+            <input type="checkbox" id="enableRotation" class="control-checkbox" checked>
+            <label for="enableRotation" class="control-label">Smooth Rotation</label>
         </div>
         <div class="control-item">
             <input type="checkbox" id="enableAnimations" class="control-checkbox" checked>
@@ -581,22 +598,38 @@
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
         // Performance-optimized variables
-        let mindarThree = null, currentModel = null, mixer = null, isModelLoaded = false, targetFound = false, audioPlayer = null, isAudioPlaying = false;
+        let mindarThree = null, mixer = null, isModelLoaded = false, targetFound = false, audioPlayer = null, isAudioPlaying = false;
         let anchors = [];
         let currentTrackIndex = -1;
         let artifactData = [];
         let currentArtifact = null;
         let isARInitialized = false;
         let loadingTimeout = null;
-        let modelCache = new Map();
 
-        // Performance settings
-        let enableRotation = false;
+        // Advanced Memory Management
+        let modelCache = new Map();
+        let activeModels = new Map(); // Track models by index
+
+        // Advanced Performance settings
+        let enableRotation = true;
         let enableAnimations = true;
         let lowQuality = false;
         let fpsCounter = 0;
         let lastTime = performance.now();
         let frameSkip = 0;
+
+        // Smooth Rotation System
+        let rotationSpeed = 0;
+        let targetRotationSpeed = 0.01;
+        let rotationAcceleration = 0.0002;
+        let rotationDamping = 0.98;
+
+        // Model info visibility
+        let isModelInfoVisible = false;
+
+        // Memory monitoring
+        let memoryUsage = 0;
+        let lastMemoryCheck = 0;
 
         const elements = {
             statusDot: document.querySelector("#statusDot"),
@@ -628,6 +661,31 @@
             lowQuality: document.querySelector("#lowQuality")
         };
 
+        // Advanced Memory Management Functions
+        function getMemoryUsage() {
+            if (performance.memory) {
+                return Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
+            }
+            return 0;
+        }
+
+        // Smooth Rotation Algorithm
+        function updateSmoothRotation(model, deltaTime) {
+            if (!enableRotation || !model) return;
+
+            // Smooth acceleration/deceleration
+            if (targetFound && isModelInfoVisible) {
+                rotationSpeed += (targetRotationSpeed - rotationSpeed) * rotationAcceleration * deltaTime * 1000;
+            } else {
+                rotationSpeed *= rotationDamping;
+            }
+
+            // Apply rotation with easing
+            if (Math.abs(rotationSpeed) > 0.0001) {
+                model.rotation.y += rotationSpeed;
+            }
+        }
+
         // Debounced update function for better performance
         let updateDebugTimeout = null;
         function updateDebugInfo() {
@@ -637,7 +695,9 @@
                 document.querySelector("#debugArtifactCount").textContent = artifactData.length;
                 document.querySelector("#debugARStatus").textContent = isARInitialized ? "Yes" : "No";
                 document.querySelector("#debugCurrentTrack").textContent = currentTrackIndex >= 0 ? `Track ${currentTrackIndex}` : "None";
-                document.querySelector("#debugModelStatus").textContent = isModelLoaded ? "Yes" : "No";
+                document.querySelector("#debugModelStatus").textContent = activeModels.size > 0 ? "Yes" : "No";
+                document.querySelector("#debugMemory").textContent = `${getMemoryUsage()}MB`;
+                document.querySelector("#debugFPS").textContent = fpsCounter;
             }, 100);
         }
 
@@ -645,7 +705,7 @@
             const debugLastData = document.querySelector("#debugLastData");
             if (data && data.length > 0) {
                 const summary = data.slice(0, 3).map((item, index) =>
-                    `${index + 1}. ${(item.tenHienVat3D || 'Unknown').substring(0, 20)}...\n   Model: ${item.model3dPcGlb ? 'Yes' : 'No'}`
+                    `${index + 1}. ${(item.tenHienVat3D || 'Unknown').substring(0, 20)}...\n   Model: ${item.model3dPcGlb ? 'Yes' : 'No'}\n   Index: ${index}`
                 ).join('\n\n');
                 debugLastData.textContent = summary + (data.length > 3 ? `\n... +${data.length - 3} more` : '');
             } else {
@@ -663,6 +723,9 @@
 
         elements.enableRotation.addEventListener('change', (e) => {
             enableRotation = e.target.checked;
+            if (!enableRotation) {
+                rotationSpeed = 0;
+            }
         });
 
         elements.enableAnimations.addEventListener('change', (e) => {
@@ -675,11 +738,11 @@
         elements.lowQuality.addEventListener('change', (e) => {
             lowQuality = e.target.checked;
             if (mindarThree && mindarThree.renderer) {
-                mindarThree.renderer.setPixelRatio(lowQuality ? 0.5 : window.devicePixelRatio);
+                mindarThree.renderer.setPixelRatio(lowQuality ? 0.5 : Math.min(window.devicePixelRatio, 2));
             }
         });
 
-        function parseArtifactToModelData(artifact) {
+        function parseArtifactToModelData(artifact, index) {
             let modelUrl = null;
             if (artifact.model3dPcGlb) {
                 const glbLinks = artifact.model3dPcGlb.split(',');
@@ -692,6 +755,7 @@
             }
 
             return {
+                index: index, // Add explicit index
                 name: artifact.tenHienVat3D || artifact.hienVatObj?.tenHienVat || "Hiện vật 3D",
                 description: artifact.gioiThieu || artifact.hienVatObj?.mieuTa || "Mô tả hiện vật",
                 modelUrl: modelUrl,
@@ -726,6 +790,15 @@
                             data: { count: data.length, timestamp: Date.now() }
                         }));
                     }
+
+                    // Log artifacts with their indices
+                    data.forEach((artifact, index) => {
+                        console.log(`Artifact ${index}:`, {
+                            name: artifact.tenHienVat3D,
+                            model3dPcGlb: artifact.model3dPcGlb,
+                            audio: artifact.audio
+                        });
+                    });
 
                     if (!isARInitialized) {
                         initAR();
@@ -773,36 +846,31 @@
             window.dispatchEvent(new MessageEvent('message', { data: event.data }));
         });
 
+        // Fixed: Get model data by exact index
         function getModelDataForTrack(trackIndex) {
-            if (artifactData.length > 0) {
-                const artifact = artifactData[trackIndex % artifactData.length];
+            if (artifactData.length > 0 && trackIndex < artifactData.length) {
+                const artifact = artifactData[trackIndex]; // Use exact index, not modulo
                 currentArtifact = artifact;
-                return parseArtifactToModelData(artifact);
+                return parseArtifactToModelData(artifact, trackIndex);
             }
+            console.warn(`No artifact found for track index ${trackIndex}`);
             return null;
         }
 
-        // Optimized model loading with timeout and caching
-        async function loadModel(fileLink) {
+        // Advanced model loading with memory optimization
+        async function loadModel(fileLink, modelIndex) {
             try {
                 if (!fileLink) {
                     throw new Error("No model URL provided");
                 }
 
                 // Check cache first
-                if (modelCache.has(fileLink)) {
-                    console.log('Loading model from cache');
-                    return modelCache.get(fileLink).clone();
-                }
-
-                // Clear existing model
-                if (currentModel) {
-                    anchors.forEach(anchor => {
-                        if (anchor && anchor.group) {
-                            anchor.group.remove(currentModel);
-                        }
-                    });
-                    currentModel = null;
+                const cacheKey = `${fileLink}_${modelIndex}`;
+                if (modelCache.has(cacheKey)) {
+                    console.log(`Loading model ${modelIndex} from cache`);
+                    const cachedModel = modelCache.get(cacheKey);
+                    cachedModel.userData.lastUsed = Date.now();
+                    return cachedModel.clone();
                 }
 
                 const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}`;
@@ -811,7 +879,7 @@
                     // Set loading timeout
                     loadingTimeout = setTimeout(() => {
                         reject(new Error("Model loading timeout"));
-                    }, 15000); // 15 second timeout
+                    }, 15000);
 
                     const loader = new GLTFLoader();
 
@@ -833,19 +901,22 @@
                             const center = box.getCenter(new THREE.Vector3());
                             model.position.sub(center.multiplyScalar(scale));
 
-                            // Optimize materials for performance
+                            // Advanced material optimization
                             model.traverse((child) => {
                                 if (child.isMesh) {
-                                    if (lowQuality) {
-                                        // Reduce quality for better performance
-                                        if (child.material.map) {
+                                    // Optimize materials
+                                    if (child.material) {
+                                        if (lowQuality && child.material.map) {
                                             child.material.map.minFilter = THREE.LinearFilter;
                                             child.material.map.magFilter = THREE.LinearFilter;
+                                            child.material.map.generateMipmaps = false;
                                         }
                                     }
-                                    child.castShadow = false; // Disable shadows for better performance
+
+                                    // Disable shadows for better performance
+                                    child.castShadow = false;
                                     child.receiveShadow = false;
-                                    if (child.material) child.material.needsUpdate = true;
+                                    child.frustumCulled = true; // Enable frustum culling
                                 }
                             });
 
@@ -863,8 +934,15 @@
                                 });
                             }
 
+                            // Store model metadata
+                            model.userData = {
+                                index: modelIndex,
+                                lastUsed: Date.now(),
+                                originalScale: scale
+                            };
+
                             // Cache the model
-                            modelCache.set(fileLink, model.clone());
+                            modelCache.set(cacheKey, model.clone());
 
                             updateProgress(100, "Hoàn thành!");
                             resolve(model);
@@ -941,6 +1019,23 @@
             audioPlayer.addEventListener('error', () => elements.audioInfo.innerHTML = '<span>❌</span><span>Lỗi audio</span>');
         }
 
+        // Toggle model info visibility
+        function toggleModelInfo() {
+            isModelInfoVisible = !isModelInfoVisible;
+
+            if (isModelInfoVisible) {
+                elements.modelInfo.classList.remove('hidden');
+                elements.modelInfo.style.display = 'block';
+            } else {
+                elements.modelInfo.classList.add('hidden');
+                setTimeout(() => {
+                    if (!isModelInfoVisible) {
+                        elements.modelInfo.style.display = 'none';
+                    }
+                }, 300);
+            }
+        }
+
         function playAudio() {
             if (audioPlayer) {
                 audioPlayer.play().then(() => {
@@ -953,6 +1048,11 @@
                         elements.audioTitle.textContent = modelData.audioTitle;
                     }
                     elements.audioInfo.style.display = 'none';
+
+                    // Show model info when audio plays
+                    isModelInfoVisible = true;
+                    elements.modelInfo.classList.remove('hidden');
+                    elements.modelInfo.style.display = 'block';
                 }).catch(console.error);
             }
         }
@@ -979,7 +1079,7 @@
         }
 
         function showModelInfo(data, trackIndex) {
-            elements.modelName.textContent = data.name;
+            elements.modelName.textContent = `${data.name} (Track ${trackIndex})`;
 
             let description = data.description;
             if (description.length > 100) {
@@ -987,21 +1087,31 @@
             }
 
             elements.modelDescription.textContent = description;
-            elements.modelInfo.style.display = 'block';
+
+            // Don't show model info automatically, wait for audio button click
+            elements.modelInfo.style.display = 'none';
+            isModelInfoVisible = false;
 
             if (data.audioUrl) {
                 elements.audioButton.style.display = 'flex';
                 initAudio(data);
             }
 
-            elements.trackInfo.textContent = `Track ${trackIndex}`;
+            elements.trackInfo.textContent = `Track ${trackIndex} - Index ${data.index}`;
             elements.trackInfo.style.display = 'block';
 
             updateDebugInfo();
         }
 
         function hideModelInfo() {
-            elements.modelInfo.style.display = 'none';
+            isModelInfoVisible = false;
+            elements.modelInfo.classList.add('hidden');
+            setTimeout(() => {
+                if (!isModelInfoVisible) {
+                    elements.modelInfo.style.display = 'none';
+                }
+            }, 300);
+
             elements.audioButton.style.display = 'none';
             elements.audioControls.style.display = 'none';
             elements.trackInfo.style.display = 'none';
@@ -1029,9 +1139,10 @@
 
                 // Optimize renderer for mobile
                 renderer.setPixelRatio(lowQuality ? 0.5 : Math.min(window.devicePixelRatio, 2));
-                renderer.shadowMap.enabled = false; // Disable shadows for better performance
+                renderer.shadowMap.enabled = false;
 
-                const maxTargets = Math.min(5, artifactData.length); // Limit targets for better performance
+                // Create anchors for each artifact (exact mapping)
+                const maxTargets = Math.min(artifactData.length, 10); // Limit for performance
 
                 for (let i = 0; i < maxTargets; i++) {
                     try {
@@ -1042,22 +1153,36 @@
                             targetFound = true;
                             currentTrackIndex = i;
 
+                            console.log(`Target ${i} found! Loading artifact at index ${i}`);
+
+                            // Get model data for exact index
                             const modelData = getModelDataForTrack(i);
                             if (!modelData || !modelData.modelUrl) {
-                                showError("Không có model 3D", "Hiện vật này chưa có model 3D");
+                                console.error(`No model data for index ${i}`);
+                                showError("Không có model 3D", `Hiện vật index ${i} chưa có model 3D`);
                                 return;
                             }
 
-                            if (!isModelLoaded) {
+                            console.log(`Loading model for index ${i}:`, modelData.name);
+
+                            // Check if model already exists for this index
+                            if (activeModels.has(i)) {
+                                const existingModel = activeModels.get(i);
+                                anchor.group.add(existingModel);
+                                console.log(`Reusing existing model for index ${i}`);
+                                isModelLoaded = true;
+                            } else {
                                 try {
                                     elements.loadingOverlay.style.display = 'block';
-                                    updateProgress(0, "Đang tải model...");
+                                    updateProgress(0, `Đang tải model ${i}...`);
 
-                                    const model = await loadModel(modelData.modelUrl);
+                                    const model = await loadModel(modelData.modelUrl, i);
                                     if (model) {
                                         anchor.group.add(model);
-                                        currentModel = model;
+                                        activeModels.set(i, model); // Store by exact index
                                         isModelLoaded = true;
+
+                                        console.log(`Model loaded and stored for index ${i}`);
 
                                         setTimeout(() => {
                                             elements.loadingOverlay.style.display = 'none';
@@ -1065,12 +1190,10 @@
                                         }, 300);
                                     }
                                 } catch (error) {
-                                    console.error("Failed to load model:", error);
+                                    console.error(`Failed to load model for index ${i}:`, error);
                                     elements.loadingOverlay.style.display = 'none';
-                                    showError("Lỗi tải model", "Không thể tải model 3D");
+                                    showError("Lỗi tải model", `Không thể tải model cho index ${i}`);
                                 }
-                            } else if (currentModel) {
-                                anchor.group.add(currentModel);
                             }
 
                             showModelInfo(modelData, i);
@@ -1081,8 +1204,10 @@
                                 targetFound = false;
                                 hideModelInfo();
 
-                                if (currentModel) {
-                                    anchor.group.remove(currentModel);
+                                // Remove model from anchor but keep in activeModels for reuse
+                                if (activeModels.has(i)) {
+                                    const model = activeModels.get(i);
+                                    anchor.group.remove(model);
                                 }
                             }
                         };
@@ -1105,21 +1230,38 @@
                 updateDebugInfo();
 
                 const clock = new THREE.Clock();
+                let fpsTime = 0;
+                let fpsFrames = 0;
+
                 renderer.setAnimationLoop(() => {
-                    // Frame skipping for better performance on low-end devices
-                    frameSkip++;
-                    if (lowQuality && frameSkip % 2 === 0) return;
-
                     const delta = clock.getDelta();
+                    const currentTime = performance.now();
 
-                    // Animation update (throttled)
-                    if (mixer && enableAnimations && frameSkip % 2 === 0) {
+                    // FPS calculation
+                    fpsFrames++;
+                    fpsTime += delta;
+                    if (fpsTime >= 1.0) {
+                        fpsCounter = Math.round(fpsFrames / fpsTime);
+                        fpsFrames = 0;
+                        fpsTime = 0;
+                    }
+
+                    // Memory monitoring (every 5 seconds)
+                    if (currentTime - lastMemoryCheck > 5000) {
+                        memoryUsage = getMemoryUsage();
+                        lastMemoryCheck = currentTime;
+                        updateDebugInfo();
+                    }
+
+                    // Animation update
+                    if (mixer && enableAnimations) {
                         mixer.update(delta);
                     }
 
-                    // Model rotation (throttled)
-                    if (currentModel && targetFound && enableRotation && frameSkip % 3 === 0) {
-                        currentModel.rotation.y += 0.01;
+                    // Smooth rotation for current model
+                    if (currentTrackIndex >= 0 && activeModels.has(currentTrackIndex)) {
+                        const currentModel = activeModels.get(currentTrackIndex);
+                        updateSmoothRotation(currentModel, delta);
                     }
 
                     renderer.render(scene, camera);
@@ -1145,14 +1287,20 @@
                 mixer.stopAllAction();
                 mixer = null;
             }
-            if (currentModel) {
+
+            // Clean up active models
+            activeModels.forEach((model, index) => {
                 anchors.forEach(anchor => {
                     if (anchor && anchor.group) {
-                        anchor.group.remove(currentModel);
+                        anchor.group.remove(model);
                     }
                 });
-                currentModel = null;
-            }
+            });
+            activeModels.clear();
+
+            // Clean up model cache
+            modelCache.clear();
+
             stopAudio();
             isModelLoaded = false;
             targetFound = false;
@@ -1161,11 +1309,22 @@
             anchors = [];
             isARInitialized = false;
             frameSkip = 0;
+            rotationSpeed = 0;
             updateDebugInfo();
         }
 
         // Event listeners with touch optimization
-        elements.audioButton.addEventListener('click', () => isAudioPlaying ? pauseAudio() : playAudio());
+        elements.audioButton.addEventListener('click', () => {
+            if (isAudioPlaying) {
+                pauseAudio();
+            } else {
+                playAudio();
+            }
+
+            // Toggle model info when audio button is clicked
+            toggleModelInfo();
+        });
+
         elements.audioProgress.addEventListener('click', (e) => {
             if (audioPlayer && audioPlayer.duration) {
                 const rect = elements.audioProgress.getBoundingClientRect();
@@ -1173,6 +1332,7 @@
                 audioPlayer.currentTime = percentage * audioPlayer.duration;
             }
         });
+
         elements.retryButton.addEventListener('click', () => {
             cleanup();
             if (artifactData.length > 0) {
@@ -1211,6 +1371,7 @@
             if (document.hidden) {
                 // Pause animations when app goes to background
                 if (mixer) mixer.timeScale = 0;
+                rotationSpeed = 0;
             } else {
                 // Resume animations when app comes to foreground
                 if (mixer && enableAnimations) mixer.timeScale = 1;
