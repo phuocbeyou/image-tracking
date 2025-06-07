@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-    <title>AR Audio Scanner - Single Load</title>
+    <title>AR Audio Scanner</title>
     <script type="importmap">
   {
     "imports": {
@@ -41,7 +41,7 @@
             will-change: transform;
         }
 
-        /* Mobile-optimized status indicators */
+        /* Status indicator */
         .status-dot {
             position: fixed;
             top: env(safe-area-inset-top, 15px);
@@ -89,7 +89,7 @@
             }
         }
 
-        /* Mobile-optimized audio button */
+        /* Audio button */
         .audio-button {
             position: fixed;
             top: env(safe-area-inset-top, 15px);
@@ -129,7 +129,7 @@
             }
         }
 
-        /* Optimized loading overlay */
+        /* Loading overlay */
         .loading-overlay {
             position: fixed;
             top: 50%;
@@ -184,7 +184,7 @@
             border-radius: 2px;
         }
 
-        /* Mobile-optimized model info - Updated positioning */
+        /* Model info */
         .model-info {
             position: fixed;
             top: calc(env(safe-area-inset-top, 15px) + 70px);
@@ -210,7 +210,7 @@
             opacity: 0;
         }
 
-        /* Mobile-optimized audio controls */
+        /* Audio controls */
         .audio-controls {
             position: fixed;
             bottom: calc(env(safe-area-inset-bottom, 15px) + 120px);
@@ -244,7 +244,7 @@
             border-radius: 2px;
         }
 
-        /* Mobile-optimized error message */
+        /* Error message */
         .error-message {
             position: fixed;
             top: 50%;
@@ -280,7 +280,7 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* Compact track info */
+        /* Track info */
         .track-info {
             position: fixed;
             top: calc(env(safe-area-inset-top, 15px) + 60px);
@@ -300,7 +300,7 @@
             text-overflow: ellipsis;
         }
 
-        /* Mobile-optimized waiting message */
+        /* Waiting message */
         .waiting-message {
             position: fixed;
             top: 50%;
@@ -335,7 +335,7 @@
             line-height: 1.4;
         }
 
-        /* Compact data status */
+        /* Data status */
         .data-status {
             position: fixed;
             top: calc(env(safe-area-inset-top, 15px) + 60px);
@@ -354,112 +354,17 @@
             text-overflow: ellipsis;
         }
 
-        /* Mobile-optimized debug panel */
-        .debug-panel {
-            position: fixed;
-            top: calc(env(safe-area-inset-top, 15px) + 100px);
-            left: 10px;
-            right: 10px;
-            max-height: 50vh;
-            background: rgba(0, 0, 0, 0.95);
-            color: white;
-            border-radius: 8px;
-            padding: 10px;
-            z-index: 12;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: none;
-            overflow-y: auto;
-            font-size: 11px;
-        }
-
-        .debug-header {
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #4CAF50;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            padding-bottom: 4px;
-        }
-
-        .debug-item {
-            margin-bottom: 6px;
-            font-size: 10px;
-        }
-
-        .debug-label {
-            color: #FFC107;
-            font-weight: bold;
-        }
-
-        .debug-value {
-            color: #fff;
-            word-break: break-all;
-        }
-
-        .debug-toggle {
-            position: fixed;
-            top: calc(env(safe-area-inset-top, 15px) + 100px);
-            right: 15px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 5px;
-            font-size: 10px;
-            cursor: pointer;
-            z-index: 13;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        /* Compact performance controls */
-        .performance-controls {
-            position: fixed;
-            bottom: calc(env(safe-area-inset-bottom, 15px) + 180px);
-            left: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 8px;
-            border-radius: 6px;
-            z-index: 11;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: none;
-            font-size: 11px;
-        }
-
-        .control-item {
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .control-label {
-            font-size: 11px;
-        }
-
-        .control-checkbox {
-            width: 14px;
-            height: 14px;
-        }
-
         /* Performance optimizations */
         .model-info,
-        .audio-controls,
-        .debug-panel,
-        .performance-controls {
+        .audio-controls {
             -webkit-overflow-scrolling: touch;
         }
 
-        /* Hide scrollbars on mobile */
         ::-webkit-scrollbar {
             width: 0px;
             background: transparent;
         }
 
-        /* Reduce motion for better performance */
         @media (prefers-reduced-motion: reduce) {
 
             *,
@@ -471,7 +376,6 @@
             }
         }
 
-        /* Dark mode optimization */
         @media (prefers-color-scheme: dark) {
             body {
                 background: #000;
@@ -485,81 +389,7 @@
     <div class="audio-button" id="audioButton">🔊</div>
     <div class="track-info" id="trackInfo">Scanning...</div>
     <div class="data-status" id="dataStatus">Waiting...</div>
-    <button class="debug-toggle" id="debugToggle">🔧</button>
     <div id="container"></div>
-
-    <!-- Debug Panel -->
-    <div class="debug-panel" id="debugPanel">
-        <div class="debug-header">📊 Debug Info</div>
-        <div id="debugContent">
-            <div class="debug-item">
-                <span class="debug-label">Status:</span>
-                <span class="debug-value" id="debugStatus">Waiting...</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">Artifacts:</span>
-                <span class="debug-value" id="debugArtifactCount">0</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">AR:</span>
-                <span class="debug-value" id="debugARStatus">No</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">Track:</span>
-                <span class="debug-value" id="debugCurrentTrack">None</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">Model:</span>
-                <span class="debug-value" id="debugModelStatus">No</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">Memory:</span>
-                <span class="debug-value" id="debugMemory">0MB</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">FPS:</span>
-                <span class="debug-value" id="debugFPS">0</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">Last URL:</span>
-                <span class="debug-value" id="debugLastUrl">None</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">Load Status:</span>
-                <span class="debug-value" id="debugLoadStatus">None</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">Queue:</span>
-                <span class="debug-value" id="debugQueue">Empty</span>
-            </div>
-            <div class="debug-item">
-                <span class="debug-label">Data:</span>
-                <div class="debug-value" id="debugLastData"
-                    style="max-height: 100px; overflow-y: auto; font-size: 9px; margin-top: 3px; background: rgba(255,255,255,0.1); padding: 4px; border-radius: 3px;">
-                    No data</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Performance Controls -->
-    <div class="performance-controls" id="performanceControls">
-        <div class="control-item">
-            <input type="checkbox" id="enableRotation" class="control-checkbox" checked>
-            <label for="enableRotation" class="control-label">Smooth Rotation</label>
-        </div>
-        <div class="control-item">
-            <input type="checkbox" id="enableAnimations" class="control-checkbox" checked>
-            <label for="enableAnimations" class="control-label">Animations</label>
-        </div>
-        <div class="control-item">
-            <input type="checkbox" id="lowQuality" class="control-checkbox">
-            <label for="lowQuality" class="control-label">Low Quality</label>
-        </div>
-        <div class="control-item">
-            <input type="checkbox" id="skipValidation" class="control-checkbox">
-            <label for="skipValidation" class="control-label">Skip URL Validation</label>
-        </div>
-    </div>
 
     <!-- Waiting Message -->
     <div class="waiting-message" id="waitingMessage">
@@ -612,53 +442,46 @@
         import { MindARThree } from 'mindar-image-three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        // Performance-optimized variables
-        let mindarThree = null, mixer = null, isModelLoaded = false, targetFound = false, audioPlayer = null, isAudioPlaying = false;
+        // Core variables
+        let mindarThree = null;
+        let mixer = null;
+        let isModelLoaded = false;
+        let targetFound = false;
+        let audioPlayer = null;
+        let isAudioPlaying = false;
         let anchors = [];
         let currentTrackIndex = -1;
         let artifactData = [];
-        let currentArtifact = null;
         let isARInitialized = false;
         let loadingTimeout = null;
 
-        // Advanced Memory Management - Optimized
+        // Memory management
         let modelCache = new Map();
         let activeModels = new Map();
-        let loadingPromises = new Map();
-        let urlValidationCache = new Map();
 
-        // Advanced Performance settings - Enhanced
+        // Performance settings
         let enableRotation = true;
         let enableAnimations = true;
         let lowQuality = false;
-        let skipValidation = false;
         let fpsCounter = 0;
-        let lastTime = performance.now();
         let frameSkip = 0;
 
-        // Smooth Rotation System - Improved
+        // Rotation system
         let rotationSpeed = 0;
         let targetRotationSpeed = 0.015;
-        let rotationAcceleration = 0.0005;
         let rotationDamping = 0.985;
         let rotationEasing = 0.1;
 
         // Model info visibility
         let isModelInfoVisible = false;
 
-        // Memory monitoring - Enhanced
+        // Memory monitoring
         let memoryUsage = 0;
         let lastMemoryCheck = 0;
         let memoryThreshold = 150;
 
-        // Debug variables
-        let lastAttemptedUrl = '';
-        let lastLoadStatus = '';
-
-        // Single model loading system
+        // Single loading control
         let isCurrentlyLoading = false;
-        let modelLoadQueue = [];
-        let currentLoadingModelIndex = -1;
 
         const elements = {
             statusDot: document.querySelector("#statusDot"),
@@ -681,17 +504,10 @@
             currentTime: document.querySelector("#currentTime"),
             totalTime: document.querySelector("#totalTime"),
             errorMessage: document.querySelector("#errorMessage"),
-            retryButton: document.querySelector("#retryButton"),
-            debugPanel: document.querySelector("#debugPanel"),
-            debugToggle: document.querySelector("#debugToggle"),
-            performanceControls: document.querySelector("#performanceControls"),
-            enableRotation: document.querySelector("#enableRotation"),
-            enableAnimations: document.querySelector("#enableAnimations"),
-            lowQuality: document.querySelector("#lowQuality"),
-            skipValidation: document.querySelector("#skipValidation")
+            retryButton: document.querySelector("#retryButton")
         };
 
-        // Enhanced Memory Management Functions
+        // Memory management functions
         function getMemoryUsage() {
             if (performance.memory) {
                 return Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
@@ -720,51 +536,11 @@
                     }
                 }
 
-                urlValidationCache.clear();
                 forceGarbageCollection();
             }
         }
 
-        // More lenient URL validation
-        async function validateModelUrl(url) {
-            if (!url || skipValidation) {
-                console.log('Skipping URL validation');
-                return true;
-            }
-
-            if (urlValidationCache.has(url)) {
-                const result = urlValidationCache.get(url);
-                console.log(`URL validation from cache: ${url} -> ${result}`);
-                return result;
-            }
-
-            try {
-                console.log(`Validating URL: ${url}`);
-
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                const response = await fetch(url, {
-                    method: 'HEAD',
-                    signal: controller.signal,
-                    mode: 'no-cors'
-                });
-
-                clearTimeout(timeoutId);
-
-                const isValid = true;
-                urlValidationCache.set(url, isValid);
-
-                console.log(`URL validation result: ${url} -> ${isValid}`);
-                return isValid;
-
-            } catch (error) {
-                console.log(`URL validation failed for ${url}, but proceeding anyway:`, error.message);
-                return true;
-            }
-        }
-
-        // Enhanced Smooth Rotation Algorithm
+        // Smooth rotation
         function updateSmoothRotation(model, deltaTime) {
             if (!enableRotation || !model) return;
 
@@ -783,72 +559,6 @@
                 model.position.y += Math.sin(time * 2) * 0.002;
             }
         }
-
-        // Enhanced debug update
-        let updateDebugTimeout = null;
-        function updateDebugInfo() {
-            if (updateDebugTimeout) clearTimeout(updateDebugTimeout);
-            updateDebugTimeout = setTimeout(() => {
-                document.querySelector("#debugStatus").textContent = isARInitialized ? "AR Running" : "Waiting";
-                document.querySelector("#debugArtifactCount").textContent = artifactData.length;
-                document.querySelector("#debugARStatus").textContent = isARInitialized ? "Yes" : "No";
-                document.querySelector("#debugCurrentTrack").textContent = currentTrackIndex >= 0 ? `Track ${currentTrackIndex}` : "None";
-                document.querySelector("#debugModelStatus").textContent = activeModels.size > 0 ? "Yes" : "No";
-                document.querySelector("#debugMemory").textContent = `${getMemoryUsage()}MB`;
-                document.querySelector("#debugFPS").textContent = fpsCounter;
-                document.querySelector("#debugLastUrl").textContent = lastAttemptedUrl || "None";
-                document.querySelector("#debugLoadStatus").textContent = lastLoadStatus || "None";
-                document.querySelector("#debugQueue").textContent = modelLoadQueue.length > 0 ?
-                    `${modelLoadQueue.length} items (${modelLoadQueue.join(', ')})` : "Empty";
-            }, 100);
-        }
-
-        function showLastData(data) {
-            const debugLastData = document.querySelector("#debugLastData");
-            if (data && data.length > 0) {
-                const summary = data.slice(0, 3).map((item, index) => {
-                    const modelUrl = item.model3dPcGlb ? item.model3dPcGlb.split(',')[0].trim() : 'No URL';
-                    return `${index + 1}. ${(item.tenHienVat3D || 'Unknown').substring(0, 20)}...\n   Model: ${item.model3dPcGlb ? 'Yes' : 'No'}\n   URL: ${modelUrl.substring(0, 50)}...\n   Index: ${index}`;
-                }).join('\n\n');
-                debugLastData.textContent = summary + (data.length > 3 ? `\n... +${data.length - 3} more` : '');
-            } else {
-                debugLastData.textContent = "No valid data";
-            }
-        }
-
-        // Performance controls
-        elements.debugToggle.addEventListener('click', () => {
-            const isVisible = elements.debugPanel.style.display === 'block';
-            elements.debugPanel.style.display = isVisible ? 'none' : 'block';
-            elements.performanceControls.style.display = isVisible ? 'none' : 'block';
-            if (!isVisible) updateDebugInfo();
-        });
-
-        elements.enableRotation.addEventListener('change', (e) => {
-            enableRotation = e.target.checked;
-            if (!enableRotation) {
-                rotationSpeed = 0;
-            }
-        });
-
-        elements.enableAnimations.addEventListener('change', (e) => {
-            enableAnimations = e.target.checked;
-            if (mixer) {
-                mixer.timeScale = enableAnimations ? 1 : 0;
-            }
-        });
-
-        elements.lowQuality.addEventListener('change', (e) => {
-            lowQuality = e.target.checked;
-            if (mindarThree && mindarThree.renderer) {
-                mindarThree.renderer.setPixelRatio(lowQuality ? 0.5 : Math.min(window.devicePixelRatio, 2));
-            }
-        });
-
-        elements.skipValidation.addEventListener('change', (e) => {
-            skipValidation = e.target.checked;
-            console.log(`URL validation ${skipValidation ? 'disabled' : 'enabled'}`);
-        });
 
         function parseArtifactToModelData(artifact, index) {
             let modelUrl = null;
@@ -879,7 +589,7 @@
             };
         }
 
-        // Enhanced data receiving with cleanup
+        // Data receiving
         function receiveDataFromReactNative(data) {
             try {
                 console.log('Received data from React Native:', data);
@@ -892,9 +602,6 @@
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
 
-                    showLastData(data);
-                    updateDebugInfo();
-
                     if (window.ReactNativeWebView) {
                         window.ReactNativeWebView.postMessage(JSON.stringify({
                             type: 'DATA_RECEIVED',
@@ -902,7 +609,6 @@
                         }));
                     }
 
-                    // Enhanced logging with URL details
                     data.forEach((artifact, index) => {
                         const modelUrl = artifact.model3dPcGlb ? artifact.model3dPcGlb.split(',')[0].trim() : null;
                         console.log(`Artifact ${index}:`, {
@@ -931,7 +637,7 @@
         }
 
         function clearOldData() {
-            console.log('Clearing old data to prevent lag...');
+            console.log('Clearing old data...');
 
             stopAudio();
 
@@ -944,15 +650,9 @@
             });
 
             activeModels.clear();
-            loadingPromises.clear();
-
-            // Clear model loading queue
-            modelLoadQueue = [];
             isCurrentlyLoading = false;
-            currentLoadingModelIndex = -1;
 
             currentTrackIndex = -1;
-            currentArtifact = null;
             targetFound = false;
             isModelLoaded = false;
             isModelInfoVisible = false;
@@ -960,7 +660,7 @@
             hideModelInfo();
             cleanupMemory();
 
-            console.log('Old data cleared successfully');
+            console.log('Old data cleared');
         }
 
         window.receiveDataFromReactNative = receiveDataFromReactNative;
@@ -995,160 +695,50 @@
         function getModelDataForTrack(trackIndex) {
             if (artifactData.length > 0 && trackIndex < artifactData.length) {
                 const artifact = artifactData[trackIndex];
-                currentArtifact = artifact;
                 return parseArtifactToModelData(artifact, trackIndex);
             }
             console.warn(`No artifact found for track index ${trackIndex}`);
             return null;
         }
 
-        // Process model queue
-        function processModelQueue() {
-            if (modelLoadQueue.length === 0 || isCurrentlyLoading) {
-                return;
-            }
-
-            isCurrentlyLoading = true;
-            const nextModelIndex = modelLoadQueue.shift();
-            currentLoadingModelIndex = nextModelIndex;
-            updateDebugInfo();
-
-            console.log(`📋 Processing queue: Loading model ${nextModelIndex} (${modelLoadQueue.length} remaining in queue)`);
-
-            // Get model data
-            const modelData = getModelDataForTrack(nextModelIndex);
-            if (!modelData || !modelData.modelUrl) {
-                console.warn(`❌ No model data or URL for index ${nextModelIndex}`);
-                isCurrentlyLoading = false;
-                currentLoadingModelIndex = -1;
-                processModelQueue(); // Process next in queue
-                return;
-            }
-
-            // Check if model already exists
-            if (activeModels.has(nextModelIndex)) {
-                console.log(`♻️ Model ${nextModelIndex} already loaded, skipping`);
-                isCurrentlyLoading = false;
-                currentLoadingModelIndex = -1;
-                processModelQueue(); // Process next in queue
-                return;
-            }
-
-            // Load the model
-            loadModel(modelData.modelUrl, nextModelIndex)
-                .then(model => {
-                    if (model) {
-                        console.log(`✅ Model ${nextModelIndex} loaded successfully from queue`);
-                        activeModels.set(nextModelIndex, model);
-
-                        // If this is the current track, add it to the scene
-                        if (nextModelIndex === currentTrackIndex && targetFound) {
-                            const anchor = anchors[nextModelIndex];
-                            if (anchor && anchor.group) {
-                                anchor.group.add(model);
-                                isModelLoaded = true;
-                                console.log(`✅ Added model ${nextModelIndex} to scene`);
-                            }
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error(`❌ Error loading model ${nextModelIndex} from queue:`, error);
-                })
-                .finally(() => {
-                    // Reset loading state and process next in queue
-                    isCurrentlyLoading = false;
-                    currentLoadingModelIndex = -1;
-                    elements.loadingOverlay.style.display = 'none';
-                    updateDebugInfo();
-
-                    // Process next model in queue after a short delay
-                    setTimeout(() => {
-                        processModelQueue();
-                    }, 500);
-                });
-        }
-
-        // Queue model for loading
-        function queueModelForLoading(modelIndex) {
-            // Don't queue if already in queue or currently loading
-            if (modelLoadQueue.includes(modelIndex) || currentLoadingModelIndex === modelIndex) {
-                console.log(`⏭️ Model ${modelIndex} already in queue or loading, skipping`);
-                return;
-            }
-
-            // Don't queue if already loaded
-            if (activeModels.has(modelIndex)) {
-                console.log(`♻️ Model ${modelIndex} already loaded, skipping queue`);
-                return;
-            }
-
-            console.log(`➕ Adding model ${modelIndex} to loading queue`);
-            modelLoadQueue.push(modelIndex);
-            updateDebugInfo();
-
-            // Start processing queue if not already processing
-            if (!isCurrentlyLoading) {
-                processModelQueue();
-            }
-        }
-
-        // Enhanced model loading with single load at a time
+        // Model loading with blocking
         async function loadModel(fileLink, modelIndex) {
-            lastAttemptedUrl = fileLink;
-            lastLoadStatus = 'Starting...';
-            updateDebugInfo();
+            // Block if already loading
+            if (isCurrentlyLoading) {
+                console.log(`🚫 Model loading blocked - already loading another model`);
+                return null;
+            }
 
             try {
                 if (!fileLink) {
-                    lastLoadStatus = 'No URL provided';
                     console.warn(`No model URL provided for index ${modelIndex}`);
-                    updateDebugInfo();
                     return null;
                 }
 
-                console.log(`🔄 Starting to load model ${modelIndex} from: ${fileLink}`);
-                lastLoadStatus = 'Validating URL...';
-                updateDebugInfo();
+                isCurrentlyLoading = true;
+                console.log(`🔄 Loading model ${modelIndex} from: ${fileLink}`);
 
                 // Show loading overlay
                 elements.loadingOverlay.style.display = 'block';
                 updateProgress(0, `Đang tải model ${modelIndex}...`);
 
-                // URL validation (can be skipped)
-                if (!skipValidation) {
-                    const isValidUrl = await validateModelUrl(fileLink);
-                    if (!isValidUrl) {
-                        lastLoadStatus = 'URL validation failed';
-                        console.warn(`URL validation failed for index ${modelIndex}: ${fileLink}`);
-                        updateDebugInfo();
-                    }
-                }
-
                 // Check cache first
                 const cacheKey = `${fileLink}_${modelIndex}`;
                 if (modelCache.has(cacheKey)) {
-                    lastLoadStatus = 'Loaded from cache';
                     console.log(`✅ Loading model ${modelIndex} from cache`);
                     const cachedModel = modelCache.get(cacheKey);
                     cachedModel.userData.lastUsed = Date.now();
                     updateProgress(100, "Loaded from cache");
-                    updateDebugInfo();
                     return cachedModel.clone();
                 }
 
-                lastLoadStatus = 'Creating loader...';
-                updateDebugInfo();
-
-                // Create timestamped URL to avoid cache issues
+                // Create timestamped URL
                 const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}`;
                 console.log(`📥 Loading model from: ${timestampedUrl}`);
 
-                // Set loading timeout - increased to 20 seconds
+                // Set loading timeout
                 if (loadingTimeout) clearTimeout(loadingTimeout);
                 loadingTimeout = setTimeout(() => {
-                    lastLoadStatus = 'Timeout';
-                    updateDebugInfo();
                     elements.loadingOverlay.style.display = 'none';
                     console.error(`❌ Model loading timeout for index ${modelIndex}`);
                 }, 20000);
@@ -1160,20 +750,17 @@
                         timestampedUrl,
                         (gltf) => {
                             clearTimeout(loadingTimeout);
-                            lastLoadStatus = 'Processing model...';
                             updateProgress(90, "Thiết lập...");
-                            updateDebugInfo();
 
                             console.log(`✅ Model ${modelIndex} loaded successfully`);
 
                             const model = gltf.scene;
 
-                            // Enhanced model optimization
+                            // Model optimization
                             const box = new THREE.Box3().setFromObject(model);
                             const size = box.getSize(new THREE.Vector3());
                             const maxDimension = Math.max(size.x, size.y, size.z);
 
-                            // Ensure model has reasonable size
                             if (maxDimension === 0) {
                                 console.warn(`Model ${modelIndex} has zero size, using default scale`);
                                 model.scale.setScalar(1.0);
@@ -1184,7 +771,7 @@
                                 model.position.sub(center.multiplyScalar(scale));
                             }
 
-                            // Advanced material optimization
+                            // Material optimization
                             let meshCount = 0;
                             model.traverse((child) => {
                                 if (child.isMesh) {
@@ -1209,7 +796,7 @@
 
                             console.log(`Model ${modelIndex} has ${meshCount} meshes`);
 
-                            // Enhanced animation setup
+                            // Animation setup
                             if (gltf.animations && gltf.animations.length > 0 && enableAnimations) {
                                 console.log(`Model ${modelIndex} has ${gltf.animations.length} animations`);
                                 if (mixer) {
@@ -1225,7 +812,7 @@
                                 });
                             }
 
-                            // Store enhanced model metadata
+                            // Store model metadata
                             model.userData = {
                                 index: modelIndex,
                                 lastUsed: Date.now(),
@@ -1234,35 +821,25 @@
                                 meshCount: meshCount
                             };
 
-                            // Cache the model with size limit
+                            // Cache the model
                             if (modelCache.size < 5) {
                                 modelCache.set(cacheKey, model.clone());
                                 console.log(`Model ${modelIndex} cached`);
                             }
 
-                            lastLoadStatus = 'Complete!';
                             updateProgress(100, "Hoàn thành!");
-                            updateDebugInfo();
-
                             console.log(`🎉 Model ${modelIndex} ready for display`);
                             resolve(model);
                         },
                         (progress) => {
                             if (progress.lengthComputable) {
                                 const percentComplete = (progress.loaded / progress.total) * 80;
-                                lastLoadStatus = `Loading ${Math.round(percentComplete)}%`;
                                 updateProgress(percentComplete, `${Math.round(progress.loaded / 1024)}KB`);
-                                updateDebugInfo();
-                            } else {
-                                lastLoadStatus = `Loading ${Math.round(progress.loaded / 1024)}KB`;
-                                updateDebugInfo();
                             }
                         },
                         (error) => {
                             clearTimeout(loadingTimeout);
-                            lastLoadStatus = `Error: ${error.message}`;
                             console.error(`❌ Error loading model ${modelIndex}:`, error);
-                            updateDebugInfo();
                             reject(error);
                         }
                     );
@@ -1270,19 +847,17 @@
 
             } catch (error) {
                 if (loadingTimeout) clearTimeout(loadingTimeout);
-                lastLoadStatus = `Failed: ${error.message}`;
                 console.error(`❌ Error loading model ${modelIndex}:`, error);
-                updateDebugInfo();
-
-                // Show error but don't return null - try to continue
                 showError("Lỗi tải model", `Model ${modelIndex}: ${error.message}`);
                 return null;
+            } finally {
+                isCurrentlyLoading = false;
+                elements.loadingOverlay.style.display = 'none';
             }
         }
 
         function setStatus(type) {
             elements.statusDot.className = `status-dot ${type}`;
-            updateDebugInfo();
         }
 
         function updateProgress(progress, details) {
@@ -1397,7 +972,6 @@
             }
 
             elements.modelDescription.textContent = description;
-
             elements.modelInfo.style.display = 'none';
             isModelInfoVisible = false;
 
@@ -1408,8 +982,6 @@
 
             elements.trackInfo.textContent = `Track ${trackIndex} - Index ${data.index}`;
             elements.trackInfo.style.display = 'block';
-
-            updateDebugInfo();
         }
 
         function hideModelInfo() {
@@ -1425,7 +997,6 @@
             elements.audioControls.style.display = 'none';
             elements.trackInfo.style.display = 'none';
             stopAudio();
-            updateDebugInfo();
         }
 
         async function initAR() {
@@ -1465,7 +1036,7 @@
                             targetFound = true;
                             currentTrackIndex = i;
 
-                            console.log(`🎯 Target ${i} found! Loading artifact at index ${i}`);
+                            console.log(`🎯 Target ${i} found!`);
 
                             const modelData = getModelDataForTrack(i);
                             if (!modelData) {
@@ -1473,7 +1044,6 @@
                                 return;
                             }
 
-                            // Show model info regardless of model loading
                             showModelInfo(modelData, i);
 
                             if (!modelData.modelUrl) {
@@ -1481,18 +1051,24 @@
                                 return;
                             }
 
-                            console.log(`📦 Checking model for index ${i}: ${modelData.name}`);
-
-                            // Check if model already exists for this index
+                            // Check if model already exists
                             if (activeModels.has(i)) {
                                 const existingModel = activeModels.get(i);
                                 anchor.group.add(existingModel);
                                 console.log(`♻️ Reusing existing model for index ${i}`);
                                 isModelLoaded = true;
                             } else {
-                                // Queue model for loading
-                                console.log(`🔄 Queueing model ${i} for loading`);
-                                queueModelForLoading(i);
+                                // Try to load model (will be blocked if another is loading)
+                                const model = await loadModel(modelData.modelUrl, i);
+
+                                if (model) {
+                                    console.log(`✅ Adding model ${i} to scene`);
+                                    anchor.group.add(model);
+                                    activeModels.set(i, model);
+                                    isModelLoaded = true;
+                                } else {
+                                    console.warn(`⚠️ Failed to load model for index ${i}`);
+                                }
                             }
                         };
 
@@ -1524,7 +1100,6 @@
                 await mindarThree.start();
                 setStatus('default');
                 isARInitialized = true;
-                updateDebugInfo();
 
                 console.log('🎉 AR initialized successfully');
 
@@ -1552,7 +1127,6 @@
                     if (currentTime - lastMemoryCheck > 10000) {
                         memoryUsage = getMemoryUsage();
                         lastMemoryCheck = currentTime;
-                        updateDebugInfo();
 
                         if (memoryUsage > memoryThreshold) {
                             cleanupMemory();
@@ -1616,15 +1190,7 @@
                 });
             });
             activeModels.clear();
-
             modelCache.clear();
-            loadingPromises.clear();
-            urlValidationCache.clear();
-
-            // Clear model loading queue
-            modelLoadQueue = [];
-            isCurrentlyLoading = false;
-            currentLoadingModelIndex = -1;
 
             stopAudio();
             isModelLoaded = false;
@@ -1635,11 +1201,9 @@
             isARInitialized = false;
             frameSkip = 0;
             rotationSpeed = 0;
-            lastAttemptedUrl = '';
-            lastLoadStatus = '';
+            isCurrentlyLoading = false;
 
             forceGarbageCollection();
-            updateDebugInfo();
             console.log('✅ Cleanup completed');
         }
 
@@ -1671,6 +1235,7 @@
             }
         });
 
+        // Prevent zoom on double tap
         let lastTouchEnd = 0;
         document.addEventListener('touchend', function (event) {
             const now = (new Date()).getTime();
@@ -1681,7 +1246,7 @@
         }, false);
 
         window.addEventListener('load', () => {
-            console.log('📱 WebView loaded, waiting for data from React Native...');
+            console.log('📱 WebView loaded, waiting for data...');
 
             if (window.ReactNativeWebView) {
                 window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -1693,7 +1258,7 @@
 
         window.addEventListener('beforeunload', cleanup);
 
-        // Enhanced memory cleanup on visibility change
+        // Memory cleanup on visibility change
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 if (mixer) mixer.timeScale = 0;
@@ -1709,72 +1274,12 @@
             }
         });
 
-        // Enhanced debug function
-        window.debugSetData = function (data) {
-            console.log('🔧 Debug: Setting artifact data', data);
-            receiveDataFromReactNative(data);
-        };
-
         // Performance monitoring
         setInterval(() => {
             if (fpsCounter < 15 && !lowQuality) {
-                console.warn('⚠️ Low FPS detected, consider enabling low quality mode');
+                console.warn('⚠️ Low FPS detected');
             }
         }, 5000);
-
-        // Debug helper functions
-        window.debugForceLoad = function (index) {
-            console.log(`🔧 Debug: Force loading model at index ${index}`);
-            if (artifactData[index]) {
-                const modelData = parseArtifactToModelData(artifactData[index], index);
-                if (modelData.modelUrl) {
-                    queueModelForLoading(index);
-                }
-            }
-        };
-
-        window.debugClearCache = function () {
-            console.log('🔧 Debug: Clearing all caches');
-            modelCache.clear();
-            urlValidationCache.clear();
-            loadingPromises.clear();
-            console.log('✅ All caches cleared');
-        };
-
-        window.debugClearQueue = function () {
-            console.log('🔧 Debug: Clearing model queue');
-            modelLoadQueue = [];
-            isCurrentlyLoading = false;
-            currentLoadingModelIndex = -1;
-            updateDebugInfo();
-            console.log('✅ Queue cleared');
-        };
-
-        window.debugShowInfo = function () {
-            console.log('🔧 Debug Info:', {
-                artifactCount: artifactData.length,
-                activeModels: activeModels.size,
-                cachedModels: modelCache.size,
-                currentTrack: currentTrackIndex,
-                isARInitialized,
-                memoryUsage: getMemoryUsage(),
-                lastUrl: lastAttemptedUrl,
-                lastStatus: lastLoadStatus,
-                isCurrentlyLoading,
-                currentLoadingModel: currentLoadingModelIndex,
-                queueLength: modelLoadQueue.length,
-                queue: modelLoadQueue
-            });
-        };
-
-        window.debugShowQueue = function () {
-            console.log('🔧 Current Queue:', {
-                isLoading: isCurrentlyLoading,
-                currentModel: currentLoadingModelIndex,
-                queue: modelLoadQueue,
-                queueLength: modelLoadQueue.length
-            });
-        };
 
     </script>
 </body>
