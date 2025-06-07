@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-    <title>AR Audio Scanner</title>
+    <title>AR Audio Scanner - Optimized</title>
     <script type="importmap">
   {
     "imports": {
@@ -188,7 +188,6 @@
         .model-info {
             position: fixed;
             top: calc(env(safe-area-inset-top, 15px) + 70px);
-            /* Position below audio button */
             left: 15px;
             max-width: 300px;
             background: rgba(0, 0, 0, 0.8);
@@ -606,11 +605,13 @@
         let isARInitialized = false;
         let loadingTimeout = null;
 
-        // Advanced Memory Management
+        // Advanced Memory Management - Optimized
         let modelCache = new Map();
-        let activeModels = new Map(); // Track models by index
+        let activeModels = new Map();
+        let loadingPromises = new Map(); // Prevent duplicate loading
+        let urlValidationCache = new Map(); // Cache URL validation results
 
-        // Advanced Performance settings
+        // Advanced Performance settings - Enhanced
         let enableRotation = true;
         let enableAnimations = true;
         let lowQuality = false;
@@ -618,18 +619,20 @@
         let lastTime = performance.now();
         let frameSkip = 0;
 
-        // Smooth Rotation System
+        // Smooth Rotation System - Improved
         let rotationSpeed = 0;
-        let targetRotationSpeed = 0.01;
-        let rotationAcceleration = 0.0002;
-        let rotationDamping = 0.98;
+        let targetRotationSpeed = 0.015; // Slightly faster base speed
+        let rotationAcceleration = 0.0005; // Smoother acceleration
+        let rotationDamping = 0.985; // Better damping
+        let rotationEasing = 0.1; // Easing factor for smoother transitions
 
         // Model info visibility
         let isModelInfoVisible = false;
 
-        // Memory monitoring
+        // Memory monitoring - Enhanced
         let memoryUsage = 0;
         let lastMemoryCheck = 0;
+        let memoryThreshold = 150; // MB threshold for cleanup
 
         const elements = {
             statusDot: document.querySelector("#statusDot"),
@@ -661,7 +664,7 @@
             lowQuality: document.querySelector("#lowQuality")
         };
 
-        // Advanced Memory Management Functions
+        // Enhanced Memory Management Functions
         function getMemoryUsage() {
             if (performance.memory) {
                 return Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
@@ -669,20 +672,88 @@
             return 0;
         }
 
-        // Smooth Rotation Algorithm
+        function forceGarbageCollection() {
+            if (window.gc) {
+                window.gc();
+            }
+        }
+
+        function cleanupMemory() {
+            const currentMemory = getMemoryUsage();
+            if (currentMemory > memoryThreshold) {
+                console.log(`Memory usage high (${currentMemory}MB), cleaning up...`);
+
+                // Clear old cached models (keep only recent ones)
+                const now = Date.now();
+                const maxAge = 5 * 60 * 1000; // 5 minutes
+
+                for (const [key, model] of modelCache.entries()) {
+                    if (now - model.userData.lastUsed > maxAge) {
+                        modelCache.delete(key);
+                        console.log(`Removed cached model: ${key}`);
+                    }
+                }
+
+                // Clear URL validation cache
+                urlValidationCache.clear();
+
+                // Force garbage collection if available
+                forceGarbageCollection();
+            }
+        }
+
+        // Enhanced URL Validation with caching
+        async function validateModelUrl(url) {
+            if (!url) return false;
+
+            // Check cache first
+            if (urlValidationCache.has(url)) {
+                return urlValidationCache.get(url);
+            }
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
+                const response = await fetch(url, {
+                    method: 'HEAD',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                const isValid = response.ok && response.headers.get('content-type')?.includes('model');
+                urlValidationCache.set(url, isValid);
+
+                return isValid;
+            } catch (error) {
+                console.warn(`URL validation failed for ${url}:`, error.message);
+                urlValidationCache.set(url, false);
+                return false;
+            }
+        }
+
+        // Enhanced Smooth Rotation Algorithm
         function updateSmoothRotation(model, deltaTime) {
             if (!enableRotation || !model) return;
 
-            // Smooth acceleration/deceleration
-            if (targetFound && isModelInfoVisible) {
-                rotationSpeed += (targetRotationSpeed - rotationSpeed) * rotationAcceleration * deltaTime * 1000;
-            } else {
-                rotationSpeed *= rotationDamping;
+            const targetSpeed = (targetFound && isModelInfoVisible) ? targetRotationSpeed : 0;
+
+            // Smooth interpolation with easing
+            rotationSpeed += (targetSpeed - rotationSpeed) * rotationEasing * deltaTime * 60;
+
+            // Apply damping when slowing down
+            if (targetSpeed === 0) {
+                rotationSpeed *= Math.pow(rotationDamping, deltaTime * 60);
             }
 
-            // Apply rotation with easing
+            // Apply rotation with smooth transitions
             if (Math.abs(rotationSpeed) > 0.0001) {
-                model.rotation.y += rotationSpeed;
+                model.rotation.y += rotationSpeed * deltaTime * 60;
+
+                // Add subtle bobbing motion for more natural feel
+                const time = performance.now() * 0.001;
+                model.position.y += Math.sin(time * 2) * 0.002;
             }
         }
 
@@ -755,7 +826,7 @@
             }
 
             return {
-                index: index, // Add explicit index
+                index: index,
                 name: artifact.tenHienVat3D || artifact.hienVatObj?.tenHienVat || "Hiện vật 3D",
                 description: artifact.gioiThieu || artifact.hienVatObj?.mieuTa || "Mô tả hiện vật",
                 modelUrl: modelUrl,
@@ -771,9 +842,13 @@
             };
         }
 
+        // Enhanced data receiving with cleanup
         function receiveDataFromReactNative(data) {
             try {
                 console.log('Received data from React Native:', data);
+
+                // Clear old data first to prevent lag
+                clearOldData();
 
                 if (Array.isArray(data) && data.length > 0) {
                     artifactData = data;
@@ -817,6 +892,44 @@
             }
         }
 
+        // Clear old data function
+        function clearOldData() {
+            console.log('Clearing old data to prevent lag...');
+
+            // Stop current audio
+            stopAudio();
+
+            // Clear active models from scene
+            activeModels.forEach((model, index) => {
+                anchors.forEach(anchor => {
+                    if (anchor && anchor.group) {
+                        anchor.group.remove(model);
+                    }
+                });
+            });
+
+            // Clear active models map
+            activeModels.clear();
+
+            // Clear loading promises
+            loadingPromises.clear();
+
+            // Reset current states
+            currentTrackIndex = -1;
+            currentArtifact = null;
+            targetFound = false;
+            isModelLoaded = false;
+            isModelInfoVisible = false;
+
+            // Hide UI elements
+            hideModelInfo();
+
+            // Clean up memory
+            cleanupMemory();
+
+            console.log('Old data cleared successfully');
+        }
+
         window.receiveDataFromReactNative = receiveDataFromReactNative;
         window.setArtifactData = receiveDataFromReactNative;
 
@@ -846,10 +959,10 @@
             window.dispatchEvent(new MessageEvent('message', { data: event.data }));
         });
 
-        // Fixed: Get model data by exact index
+        // Get model data by exact index
         function getModelDataForTrack(trackIndex) {
             if (artifactData.length > 0 && trackIndex < artifactData.length) {
-                const artifact = artifactData[trackIndex]; // Use exact index, not modulo
+                const artifact = artifactData[trackIndex];
                 currentArtifact = artifact;
                 return parseArtifactToModelData(artifact, trackIndex);
             }
@@ -857,11 +970,26 @@
             return null;
         }
 
-        // Advanced model loading with memory optimization
+        // Enhanced model loading with URL validation and error handling
         async function loadModel(fileLink, modelIndex) {
             try {
                 if (!fileLink) {
-                    throw new Error("No model URL provided");
+                    console.warn(`No model URL provided for index ${modelIndex}`);
+                    return null; // Return null instead of throwing error
+                }
+
+                // Validate URL first
+                const isValidUrl = await validateModelUrl(fileLink);
+                if (!isValidUrl) {
+                    console.warn(`Invalid or broken model URL for index ${modelIndex}: ${fileLink}`);
+                    return null; // Return null for broken URLs
+                }
+
+                // Check if already loading
+                const loadingKey = `${fileLink}_${modelIndex}`;
+                if (loadingPromises.has(loadingKey)) {
+                    console.log(`Model ${modelIndex} already loading, waiting...`);
+                    return await loadingPromises.get(loadingKey);
                 }
 
                 // Check cache first
@@ -875,11 +1003,11 @@
 
                 const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}`;
 
-                return new Promise((resolve, reject) => {
+                const loadingPromise = new Promise((resolve, reject) => {
                     // Set loading timeout
                     loadingTimeout = setTimeout(() => {
                         reject(new Error("Model loading timeout"));
-                    }, 15000);
+                    }, 10000); // Reduced timeout to 10 seconds
 
                     const loader = new GLTFLoader();
 
@@ -891,7 +1019,7 @@
 
                             const model = gltf.scene;
 
-                            // Optimize model for mobile
+                            // Enhanced model optimization
                             const box = new THREE.Box3().setFromObject(model);
                             const size = box.getSize(new THREE.Vector3());
                             const maxDimension = Math.max(size.x, size.y, size.z);
@@ -911,16 +1039,21 @@
                                             child.material.map.magFilter = THREE.LinearFilter;
                                             child.material.map.generateMipmaps = false;
                                         }
+
+                                        // Optimize material properties for performance
+                                        child.material.transparent = false;
+                                        child.material.alphaTest = 0;
                                     }
 
-                                    // Disable shadows for better performance
+                                    // Disable shadows and enable optimizations
                                     child.castShadow = false;
                                     child.receiveShadow = false;
-                                    child.frustumCulled = true; // Enable frustum culling
+                                    child.frustumCulled = true;
+                                    child.matrixAutoUpdate = false; // Static objects don't need auto-update
                                 }
                             });
 
-                            // Animation setup
+                            // Enhanced animation setup
                             if (gltf.animations && gltf.animations.length > 0 && enableAnimations) {
                                 if (mixer) {
                                     mixer.stopAllAction();
@@ -930,19 +1063,23 @@
                                 mixer = new THREE.AnimationMixer(model);
                                 gltf.animations.forEach((clip) => {
                                     const action = mixer.clipAction(clip);
+                                    action.setLoop(THREE.LoopRepeat);
                                     action.play();
                                 });
                             }
 
-                            // Store model metadata
+                            // Store enhanced model metadata
                             model.userData = {
                                 index: modelIndex,
                                 lastUsed: Date.now(),
-                                originalScale: scale
+                                originalScale: scale,
+                                isOptimized: true
                             };
 
-                            // Cache the model
-                            modelCache.set(cacheKey, model.clone());
+                            // Cache the model with size limit
+                            if (modelCache.size < 5) { // Limit cache size
+                                modelCache.set(cacheKey, model.clone());
+                            }
 
                             updateProgress(100, "Hoàn thành!");
                             resolve(model);
@@ -955,15 +1092,23 @@
                         },
                         (error) => {
                             clearTimeout(loadingTimeout);
-                            console.error("Error loading model:", error);
+                            console.error(`Error loading model ${modelIndex}:`, error);
                             reject(error);
                         }
                     );
                 });
+
+                // Store the loading promise
+                loadingPromises.set(loadingKey, loadingPromise);
+
+                const result = await loadingPromise;
+                loadingPromises.delete(loadingKey);
+                return result;
+
             } catch (error) {
                 if (loadingTimeout) clearTimeout(loadingTimeout);
-                console.error("Error loading model:", error);
-                throw error;
+                console.error(`Error loading model ${modelIndex}:`, error);
+                return null; // Return null instead of throwing
             }
         }
 
@@ -1137,12 +1282,14 @@
 
                 const { renderer, scene, camera } = mindarThree;
 
-                // Optimize renderer for mobile
+                // Enhanced renderer optimization
                 renderer.setPixelRatio(lowQuality ? 0.5 : Math.min(window.devicePixelRatio, 2));
                 renderer.shadowMap.enabled = false;
+                renderer.antialias = !lowQuality;
+                renderer.powerPreference = "high-performance";
 
                 // Create anchors for each artifact (exact mapping)
-                const maxTargets = Math.min(artifactData.length, 10); // Limit for performance
+                const maxTargets = Math.min(artifactData.length, 8); // Reduced for better performance
 
                 for (let i = 0; i < maxTargets; i++) {
                     try {
@@ -1158,9 +1305,8 @@
                             // Get model data for exact index
                             const modelData = getModelDataForTrack(i);
                             if (!modelData || !modelData.modelUrl) {
-                                console.error(`No model data for index ${i}`);
-                                showError("Không có model 3D", `Hiện vật index ${i} chưa có model 3D`);
-                                return;
+                                console.warn(`No model data for index ${i}, skipping...`);
+                                return; // Return early without showing anything
                             }
 
                             console.log(`Loading model for index ${i}:`, modelData.name);
@@ -1171,32 +1317,41 @@
                                 anchor.group.add(existingModel);
                                 console.log(`Reusing existing model for index ${i}`);
                                 isModelLoaded = true;
+                                showModelInfo(modelData, i);
                             } else {
                                 try {
                                     elements.loadingOverlay.style.display = 'block';
                                     updateProgress(0, `Đang tải model ${i}...`);
 
                                     const model = await loadModel(modelData.modelUrl, i);
-                                    if (model) {
-                                        anchor.group.add(model);
-                                        activeModels.set(i, model); // Store by exact index
-                                        isModelLoaded = true;
 
-                                        console.log(`Model loaded and stored for index ${i}`);
-
-                                        setTimeout(() => {
-                                            elements.loadingOverlay.style.display = 'none';
-                                            setStatus('default');
-                                        }, 300);
+                                    // Handle broken URLs - return early without showing anything
+                                    if (!model) {
+                                        console.warn(`Failed to load model for index ${i}, URL may be broken`);
+                                        elements.loadingOverlay.style.display = 'none';
+                                        return; // Return early without showing error
                                     }
+
+                                    anchor.group.add(model);
+                                    activeModels.set(i, model);
+                                    isModelLoaded = true;
+
+                                    console.log(`Model loaded and stored for index ${i}`);
+
+                                    setTimeout(() => {
+                                        elements.loadingOverlay.style.display = 'none';
+                                        setStatus('default');
+                                    }, 300);
+
+                                    showModelInfo(modelData, i);
+
                                 } catch (error) {
-                                    console.error(`Failed to load model for index ${i}:`, error);
+                                    console.warn(`Failed to load model for index ${i}:`, error);
                                     elements.loadingOverlay.style.display = 'none';
-                                    showError("Lỗi tải model", `Không thể tải model cho index ${i}`);
+                                    // Don't show error, just return early
+                                    return;
                                 }
                             }
-
-                            showModelInfo(modelData, i);
                         };
 
                         anchor.onTargetLost = () => {
@@ -1218,10 +1373,11 @@
                     }
                 }
 
-                // Optimized lighting
-                scene.add(new THREE.AmbientLight(0x404040, 1.0));
+                // Enhanced lighting setup
+                scene.add(new THREE.AmbientLight(0x404040, 1.2));
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
                 directionalLight.position.set(5, 5, 5);
+                directionalLight.castShadow = false; // Disable shadows for performance
                 scene.add(directionalLight);
 
                 await mindarThree.start();
@@ -1233,9 +1389,16 @@
                 let fpsTime = 0;
                 let fpsFrames = 0;
 
+                // Enhanced render loop with performance optimizations
                 renderer.setAnimationLoop(() => {
                     const delta = clock.getDelta();
                     const currentTime = performance.now();
+
+                    // Skip frames if performance is poor
+                    frameSkip++;
+                    if (frameSkip % 2 === 0 && lowQuality) {
+                        return; // Skip every other frame in low quality mode
+                    }
 
                     // FPS calculation
                     fpsFrames++;
@@ -1246,19 +1409,24 @@
                         fpsTime = 0;
                     }
 
-                    // Memory monitoring (every 5 seconds)
-                    if (currentTime - lastMemoryCheck > 5000) {
+                    // Memory monitoring (every 10 seconds)
+                    if (currentTime - lastMemoryCheck > 10000) {
                         memoryUsage = getMemoryUsage();
                         lastMemoryCheck = currentTime;
                         updateDebugInfo();
+
+                        // Auto cleanup if memory is high
+                        if (memoryUsage > memoryThreshold) {
+                            cleanupMemory();
+                        }
                     }
 
-                    // Animation update
-                    if (mixer && enableAnimations) {
+                    // Animation update with performance check
+                    if (mixer && enableAnimations && fpsCounter > 20) {
                         mixer.update(delta);
                     }
 
-                    // Smooth rotation for current model
+                    // Enhanced smooth rotation for current model
                     if (currentTrackIndex >= 0 && activeModels.has(currentTrackIndex)) {
                         const currentModel = activeModels.get(currentTrackIndex);
                         updateSmoothRotation(currentModel, delta);
@@ -1273,7 +1441,10 @@
             }
         }
 
+        // Enhanced cleanup function
         function cleanup() {
+            console.log('Starting cleanup...');
+
             if (loadingTimeout) {
                 clearTimeout(loadingTimeout);
                 loadingTimeout = null;
@@ -1283,23 +1454,40 @@
                 mindarThree.stop();
                 mindarThree.renderer.setAnimationLoop(null);
             }
+
             if (mixer) {
                 mixer.stopAllAction();
                 mixer = null;
             }
 
-            // Clean up active models
+            // Enhanced cleanup of active models
             activeModels.forEach((model, index) => {
                 anchors.forEach(anchor => {
                     if (anchor && anchor.group) {
                         anchor.group.remove(model);
                     }
                 });
+
+                // Dispose of model geometry and materials
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(material => material.dispose());
+                            } else {
+                                child.material.dispose();
+                            }
+                        }
+                    }
+                });
             });
             activeModels.clear();
 
-            // Clean up model cache
+            // Clear all caches
             modelCache.clear();
+            loadingPromises.clear();
+            urlValidationCache.clear();
 
             stopAudio();
             isModelLoaded = false;
@@ -1310,7 +1498,12 @@
             isARInitialized = false;
             frameSkip = 0;
             rotationSpeed = 0;
+
+            // Force garbage collection
+            forceGarbageCollection();
+
             updateDebugInfo();
+            console.log('Cleanup completed');
         }
 
         // Event listeners with touch optimization
@@ -1366,22 +1559,38 @@
 
         window.addEventListener('beforeunload', cleanup);
 
-        // Memory cleanup on visibility change
+        // Enhanced memory cleanup on visibility change
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 // Pause animations when app goes to background
                 if (mixer) mixer.timeScale = 0;
                 rotationSpeed = 0;
+
+                // Clean up memory when app is hidden
+                setTimeout(() => {
+                    if (document.hidden) {
+                        cleanupMemory();
+                    }
+                }, 5000);
             } else {
                 // Resume animations when app comes to foreground
                 if (mixer && enableAnimations) mixer.timeScale = 1;
             }
         });
 
+        // Enhanced debug function
         window.debugSetData = function (data) {
             console.log('Debug: Setting artifact data', data);
             receiveDataFromReactNative(data);
         };
+
+        // Performance monitoring
+        setInterval(() => {
+            if (fpsCounter < 15 && !lowQuality) {
+                console.warn('Low FPS detected, consider enabling low quality mode');
+            }
+        }, 5000);
+
     </script>
 </body>
 
