@@ -316,6 +316,93 @@
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+
+        /* Debug Panel Styles */
+        .debug-panel {
+            position: fixed;
+            top: 120px;
+            left: 20px;
+            width: 300px;
+            max-height: 400px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 12;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            overflow-y: auto;
+        }
+
+        .debug-header {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4CAF50;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 5px;
+        }
+
+        .debug-item {
+            margin-bottom: 8px;
+            font-size: 12px;
+        }
+
+        .debug-label {
+            color: #FFC107;
+            font-weight: bold;
+        }
+
+        .debug-value {
+            color: #fff;
+            word-break: break-all;
+        }
+
+        .debug-toggle {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 13;
+        }
+
+        /* Performance Controls */
+        .performance-controls {
+            position: fixed;
+            bottom: 200px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 11;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+
+        .control-item {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 12px;
+        }
+
+        .control-checkbox {
+            width: 16px;
+            height: 16px;
+        }
     </style>
 </head>
 
@@ -324,7 +411,57 @@
     <div class="audio-button" id="audioButton">🔊</div>
     <div class="track-info" id="trackInfo">Scanning...</div>
     <div class="data-status" id="dataStatus">Waiting for data...</div>
+    <button class="debug-toggle" id="debugToggle">Debug</button>
     <div id="container"></div>
+
+    <!-- Debug Panel -->
+    <div class="debug-panel" id="debugPanel">
+        <div class="debug-header">📊 Debug Information</div>
+        <div id="debugContent">
+            <div class="debug-item">
+                <span class="debug-label">Status:</span>
+                <span class="debug-value" id="debugStatus">Waiting...</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Artifacts Count:</span>
+                <span class="debug-value" id="debugArtifactCount">0</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">AR Initialized:</span>
+                <span class="debug-value" id="debugARStatus">No</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Current Track:</span>
+                <span class="debug-value" id="debugCurrentTrack">None</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Model Loaded:</span>
+                <span class="debug-value" id="debugModelStatus">No</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Last Data:</span>
+                <div class="debug-value" id="debugLastData"
+                    style="max-height: 150px; overflow-y: auto; font-size: 10px; margin-top: 5px; background: rgba(255,255,255,0.1); padding: 5px; border-radius: 4px;">
+                    No data received</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Controls -->
+    <div class="performance-controls" id="performanceControls">
+        <div class="control-item">
+            <input type="checkbox" id="enableRotation" class="control-checkbox">
+            <label for="enableRotation" class="control-label">Enable Model Rotation</label>
+        </div>
+        <div class="control-item">
+            <input type="checkbox" id="enableAnimations" class="control-checkbox" checked>
+            <label for="enableAnimations" class="control-label">Enable Animations</label>
+        </div>
+        <div class="control-item">
+            <input type="checkbox" id="showFPS" class="control-checkbox">
+            <label for="showFPS" class="control-label">Show FPS</label>
+        </div>
+    </div>
 
     <!-- Waiting Message -->
     <div class="waiting-message" id="waitingMessage">
@@ -385,6 +522,13 @@
         let currentArtifact = null;
         let isARInitialized = false;
 
+        // Performance settings
+        let enableRotation = false;
+        let enableAnimations = true;
+        let showFPS = false;
+        let fpsCounter = 0;
+        let lastTime = performance.now();
+
         const elements = {
             statusDot: document.querySelector("#statusDot"),
             audioButton: document.querySelector("#audioButton"),
@@ -406,10 +550,63 @@
             currentTime: document.querySelector("#currentTime"),
             totalTime: document.querySelector("#totalTime"),
             errorMessage: document.querySelector("#errorMessage"),
-            retryButton: document.querySelector("#retryButton")
+            retryButton: document.querySelector("#retryButton"),
+            debugPanel: document.querySelector("#debugPanel"),
+            debugToggle: document.querySelector("#debugToggle"),
+            performanceControls: document.querySelector("#performanceControls"),
+            enableRotation: document.querySelector("#enableRotation"),
+            enableAnimations: document.querySelector("#enableAnimations"),
+            showFPS: document.querySelector("#showFPS")
         };
 
-        // Function để parse model data từ artifact
+        // Debug functions
+        function updateDebugInfo() {
+            document.querySelector("#debugStatus").textContent = isARInitialized ? "AR Running" : "Waiting";
+            document.querySelector("#debugArtifactCount").textContent = artifactData.length;
+            document.querySelector("#debugARStatus").textContent = isARInitialized ? "Yes" : "No";
+            document.querySelector("#debugCurrentTrack").textContent = currentTrackIndex >= 0 ? `Track ${currentTrackIndex}` : "None";
+            document.querySelector("#debugModelStatus").textContent = isModelLoaded ? "Yes" : "No";
+        }
+
+        function showLastData(data) {
+            const debugLastData = document.querySelector("#debugLastData");
+            if (data && data.length > 0) {
+                const summary = data.map((item, index) =>
+                    `${index + 1}. ${item.tenHienVat3D || 'Unknown'}\n   Model: ${item.model3dPcGlb ? 'Yes' : 'No'}\n   Audio: ${item.audio ? 'Yes' : 'No'}`
+                ).join('\n\n');
+                debugLastData.textContent = summary;
+            } else {
+                debugLastData.textContent = "No valid data";
+            }
+        }
+
+        // Performance controls
+        elements.debugToggle.addEventListener('click', () => {
+            const isVisible = elements.debugPanel.style.display === 'block';
+            elements.debugPanel.style.display = isVisible ? 'none' : 'block';
+            elements.performanceControls.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) updateDebugInfo();
+        });
+
+        elements.enableRotation.addEventListener('change', (e) => {
+            enableRotation = e.target.checked;
+        });
+
+        elements.enableAnimations.addEventListener('change', (e) => {
+            enableAnimations = e.target.checked;
+            if (mixer) {
+                if (enableAnimations) {
+                    mixer.timeScale = 1;
+                } else {
+                    mixer.timeScale = 0;
+                }
+            }
+        });
+
+        elements.showFPS.addEventListener('change', (e) => {
+            showFPS = e.target.checked;
+        });
+
         function parseArtifactToModelData(artifact) {
             let modelUrl = null;
             if (artifact.model3dPcGlb) {
@@ -438,7 +635,6 @@
             };
         }
 
-        // Nhận dữ liệu từ React Native WebView - Hỗ trợ nhiều cách gửi
         function receiveDataFromReactNative(data) {
             try {
                 console.log('Received data from React Native:', data);
@@ -448,6 +644,18 @@
                     elements.dataStatus.textContent = `Loaded ${data.length} artifacts`;
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
+
+                    // Update debug panel
+                    showLastData(data);
+                    updateDebugInfo();
+
+                    // Send confirmation back to React Native
+                    if (window.ReactNativeWebView) {
+                        window.ReactNativeWebView.postMessage(JSON.stringify({
+                            type: 'DATA_RECEIVED',
+                            data: { count: data.length, timestamp: Date.now() }
+                        }));
+                    }
 
                     data.forEach((artifact, index) => {
                         console.log(`Artifact ${index}:`, {
@@ -476,9 +684,9 @@
 
         // Expose functions to global scope for React Native to call
         window.receiveDataFromReactNative = receiveDataFromReactNative;
-        window.setArtifactData = receiveDataFromReactNative; // Alias cho dễ sử dụng
+        window.setArtifactData = receiveDataFromReactNative;
 
-        // Lắng nghe message từ React Native WebView
+        // Listen for messages from React Native WebView
         window.addEventListener('message', function (event) {
             try {
                 const message = JSON.parse(event.data);
@@ -491,7 +699,6 @@
                 }
             } catch (error) {
                 console.error('Error parsing message from React Native:', error);
-                // Thử parse trực tiếp nếu không phải JSON
                 if (typeof event.data === 'string') {
                     try {
                         const directData = JSON.parse(event.data);
@@ -505,7 +712,6 @@
             }
         });
 
-        // Lắng nghe document message (cho React Native)
         document.addEventListener('message', function (event) {
             window.dispatchEvent(new MessageEvent('message', { data: event.data }));
         });
@@ -554,7 +760,8 @@
                             const center = box.getCenter(new THREE.Vector3());
                             model.position.sub(center.multiplyScalar(scale));
 
-                            if (gltf.animations && gltf.animations.length > 0) {
+                            // Animation setup with performance control
+                            if (gltf.animations && gltf.animations.length > 0 && enableAnimations) {
                                 if (mixer) {
                                     mixer.stopAllAction();
                                     mixer = null;
@@ -596,7 +803,10 @@
             }
         }
 
-        function setStatus(type) { elements.statusDot.className = `status-dot ${type}`; }
+        function setStatus(type) {
+            elements.statusDot.className = `status-dot ${type}`;
+            updateDebugInfo();
+        }
 
         function updateProgress(progress, details) {
             elements.progressFill.style.width = `${progress}%`;
@@ -700,6 +910,8 @@
 
             elements.trackInfo.textContent = `Track ${trackIndex} - ${data.name}`;
             elements.trackInfo.style.display = 'block';
+
+            updateDebugInfo();
         }
 
         function hideModelInfo() {
@@ -708,6 +920,7 @@
             elements.audioControls.style.display = 'none';
             elements.trackInfo.style.display = 'none';
             stopAudio();
+            updateDebugInfo();
         }
 
         async function initAR() {
@@ -808,12 +1021,33 @@
                 await mindarThree.start();
                 setStatus('default');
                 isARInitialized = true;
+                updateDebugInfo();
 
                 const clock = new THREE.Clock();
                 renderer.setAnimationLoop(() => {
                     const delta = clock.getDelta();
-                    if (mixer) mixer.update(delta);
-                    if (currentModel && targetFound) currentModel.rotation.y += 0.005;
+
+                    // FPS Counter
+                    if (showFPS) {
+                        fpsCounter++;
+                        const currentTime = performance.now();
+                        if (currentTime - lastTime >= 1000) {
+                            console.log(`FPS: ${fpsCounter}`);
+                            fpsCounter = 0;
+                            lastTime = currentTime;
+                        }
+                    }
+
+                    // Animation update (only if enabled)
+                    if (mixer && enableAnimations) {
+                        mixer.update(delta);
+                    }
+
+                    // Model rotation (only if enabled and target found)
+                    if (currentModel && targetFound && enableRotation) {
+                        currentModel.rotation.y += 0.005;
+                    }
+
                     renderer.render(scene, camera);
                 });
 
@@ -847,6 +1081,7 @@
             mindarThree = null;
             anchors = [];
             isARInitialized = false;
+            updateDebugInfo();
         }
 
         // Event listeners
@@ -871,7 +1106,6 @@
         window.addEventListener('load', () => {
             console.log('WebView loaded, waiting for data from React Native...');
 
-            // Gửi signal về React Native rằng WebView đã sẵn sàng
             if (window.ReactNativeWebView) {
                 window.ReactNativeWebView.postMessage(JSON.stringify({
                     type: 'WEBVIEW_READY',
@@ -881,7 +1115,6 @@
         });
         window.addEventListener('beforeunload', cleanup);
 
-        // Debug function để test (có thể xóa khi deploy)
         window.debugSetData = function (data) {
             console.log('Debug: Setting artifact data', data);
             receiveDataFromReactNative(data);
