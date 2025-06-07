@@ -3,134 +3,200 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-    <title>AR Audio Scanner - Optimized</title>
-    <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-      "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
-    }
-  }
-  </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Vietnamese Cultural Artifacts AR - Fixed</title>
+    <!-- Load scripts in correct order -->
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #000;
+            margin: 0;
             overflow: hidden;
-            height: 100vh;
-            width: 100vw;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
-        #container {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-            will-change: transform;
-        }
-
-        /* Status indicators */
-        .status-dot {
+        .ui-overlay {
             position: fixed;
-            top: env(safe-area-inset-top, 15px);
-            right: 15px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #4CAF50;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 10;
-            box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
-            animation: pulse 2s infinite;
+            pointer-events: none;
         }
 
-        .status-dot.loading {
-            background: #FFC107;
-            box-shadow: 0 0 12px rgba(255, 193, 7, 0.6);
-            animation: loadingPulse 1s infinite;
-        }
-
-        .status-dot.error {
-            background: #f44336;
-            box-shadow: 0 0 12px rgba(244, 67, 54, 0.6);
-            animation: none;
-        }
-
-        .status-dot.waiting {
-            background: #9E9E9E;
-            box-shadow: 0 0 12px rgba(158, 158, 158, 0.6);
-            animation: none;
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 1;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: 0.7;
-                transform: scale(1.2);
-            }
-
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-        }
-
-        @keyframes loadingPulse {
-
-            0%,
-            100% {
-                opacity: 1;
-                transform: scale(1);
-            }
-
-            50% {
-                opacity: 0.5;
-                transform: scale(1.3);
-            }
-        }
-
-        /* Loading overlay */
-        .loading-overlay {
+        .audio-button {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
+            top: env(safe-area-inset-top, 20px);
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
             color: white;
-            padding: 25px;
-            border-radius: 20px;
-            text-align: center;
-            z-index: 15;
-            backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            font-size: 24px;
             display: none;
-            max-width: 85vw;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
         }
 
-        .spinner {
-            width: 40px;
-            height: 40px;
+        .audio-button:active {
+            transform: scale(0.9);
+        }
+
+        .audio-button.playing {
+            background: rgba(76, 175, 80, 0.9);
+            border-color: rgba(76, 175, 80, 0.5);
+            animation: audioPlaying 2s infinite;
+        }
+
+        .audio-button.paused {
+            background: rgba(255, 193, 7, 0.9);
+            border-color: rgba(255, 193, 7, 0.5);
+        }
+
+        @keyframes audioPlaying {
+            0% {
+                box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 8px 32px rgba(76, 175, 80, 0.6);
+            }
+
+            100% {
+                box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);
+            }
+        }
+
+        .status-indicator {
+            position: fixed;
+            top: env(safe-area-inset-top, 20px);
+            right: 20px;
+            background: rgba(33, 150, 243, 0.9);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            display: none;
+            pointer-events: none;
+        }
+
+        .status-indicator.visible {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .model-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(20px);
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+            pointer-events: auto;
+        }
+
+        .model-info.visible {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        .model-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4CAF50;
+        }
+
+        .model-description {
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .model-details {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 10px;
+        }
+
+        .audio-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #4CAF50;
+            margin-top: 8px;
+        }
+
+        .audio-info.hidden {
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            color: white;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
             border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid #4CAF50;
+            border-top: 3px solid white;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            margin-bottom: 20px;
         }
 
         @keyframes spin {
@@ -143,152 +209,39 @@
             }
         }
 
-        .progress-bar {
-            width: 200px;
+        .loading-text {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .loading-subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .loading-progress {
+            width: 80%;
+            max-width: 300px;
             height: 4px;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.3);
             border-radius: 2px;
-            margin: 15px auto 10px;
+            margin-top: 20px;
             overflow: hidden;
         }
 
-        .progress-fill {
+        .loading-progress-bar {
             height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #45a049);
+            background: white;
+            border-radius: 2px;
             width: 0%;
             transition: width 0.3s ease;
-            border-radius: 2px;
         }
 
-        /* Model info */
-        .model-info {
-            position: fixed;
-            top: calc(env(safe-area-inset-top, 15px) + 70px);
-            left: 15px;
-            max-width: 320px;
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(15px);
-            border-radius: 15px;
-            padding: 15px;
-            z-index: 8;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            display: none;
-            color: white;
-            max-height: 35vh;
-            overflow-y: auto;
-            transform: translateY(0);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            opacity: 1;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .model-info.hidden {
-            transform: translateY(-15px);
-            opacity: 0;
-        }
-
-        /* Audio controls */
-        .audio-button {
-            position: fixed;
-            bottom: calc(env(safe-area-inset-bottom, 15px) + 20px);
-            left: 15px;
-            width: 55px;
-            height: 55px;
-            border-radius: 27.5px;
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            font-size: 22px;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-        }
-
-        .audio-button.playing {
-            background: rgba(76, 175, 80, 0.9);
-            border-color: rgba(76, 175, 80, 0.7);
-            animation: audioPlaying 2s infinite;
-            transform: scale(1.05);
-        }
-
-        @keyframes audioPlaying {
-
-            0%,
-            100% {
-                box-shadow: 0 5px 20px rgba(76, 175, 80, 0.4);
-            }
-
-            50% {
-                box-shadow: 0 5px 25px rgba(76, 175, 80, 0.7);
-            }
-        }
-
-        /* Rotation indicator */
-        .rotation-indicator {
-            position: fixed;
-            top: calc(env(safe-area-inset-top, 15px) + 70px);
-            right: 15px;
-            background: rgba(76, 175, 80, 0.9);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
+        .loading-details {
             font-size: 12px;
-            z-index: 10;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            display: none;
-            animation: rotationActive 3s infinite;
-        }
-
-        @keyframes rotationActive {
-
-            0%,
-            100% {
-                opacity: 0.8;
-            }
-
-            50% {
-                opacity: 1;
-            }
-        }
-
-        .audio-controls {
-            position: fixed;
-            bottom: calc(env(safe-area-inset-bottom, 15px) + 120px);
-            left: 15px;
-            right: 15px;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 12px;
-            z-index: 9;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            display: none;
-            color: white;
-        }
-
-        .audio-progress {
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-            margin-bottom: 8px;
-            overflow: hidden;
-            cursor: pointer;
-        }
-
-        .audio-progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4CAF50, #45a049);
-            width: 0%;
-            transition: width 0.1s ease;
-            border-radius: 2px;
+            opacity: 0.7;
+            margin-top: 10px;
         }
 
         .error-message {
@@ -298,847 +251,445 @@
             transform: translate(-50%, -50%);
             background: rgba(244, 67, 54, 0.9);
             color: white;
-            padding: 15px 20px;
-            border-radius: 12px;
+            padding: 20px 30px;
+            border-radius: 15px;
             text-align: center;
             z-index: 15;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
             display: none;
-            max-width: 85vw;
-            font-size: 14px;
+            max-width: 90vw;
         }
 
-        .retry-button {
-            position: fixed;
-            bottom: calc(env(safe-area-inset-bottom, 15px) + 20px);
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 14px;
+        .error-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .error-title {
+            font-size: 16px;
             font-weight: 600;
-            cursor: pointer;
-            z-index: 16;
-            display: none;
-            -webkit-tap-highlight-color: transparent;
+            margin-bottom: 5px;
         }
 
-        .track-info {
+        .error-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .tracking-counter {
             position: fixed;
-            top: calc(env(safe-area-inset-top, 15px) + 60px);
-            left: 15px;
-            background: rgba(0, 0, 0, 0.8);
+            top: env(safe-area-inset-top, 80px);
+            right: 20px;
+            background: rgba(76, 175, 80, 0.9);
             color: white;
-            padding: 6px 10px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 15px;
             font-size: 11px;
-            z-index: 10;
+            font-weight: 600;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
             display: none;
-            max-width: 60vw;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            pointer-events: none;
         }
 
-        .waiting-message {
+        .debug-info {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 10px;
+            max-width: 200px;
+            display: none;
+            pointer-events: none;
+        }
+
+        .debug-info.visible {
+            display: block;
+        }
+
+        .fallback-mode {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(255, 152, 0, 0.9);
             color: white;
-            padding: 25px;
+            padding: 20px 30px;
             border-radius: 15px;
             text-align: center;
             z-index: 15;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 85vw;
+            backdrop-filter: blur(20px);
+            display: none;
         }
 
-        .waiting-icon {
-            font-size: 36px;
-            margin-bottom: 15px;
-            animation: pulse 2s infinite;
-        }
-
-        .waiting-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .waiting-subtitle {
-            font-size: 12px;
-            opacity: 0.8;
-            line-height: 1.4;
-        }
-
-        .data-status {
-            position: fixed;
-            top: calc(env(safe-area-inset-top, 15px) + 60px);
-            right: 15px;
-            background: rgba(158, 158, 158, 0.8);
-            color: white;
-            padding: 6px 8px;
-            border-radius: 6px;
-            font-size: 10px;
-            z-index: 10;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 35vw;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Performance optimizations */
-        .model-info,
-        .audio-controls {
-            -webkit-overflow-scrolling: touch;
-        }
-
-        ::-webkit-scrollbar {
-            width: 0px;
-            background: transparent;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-
-            *,
-            *::before,
-            *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: #000;
-            }
+        .fallback-mode.visible {
+            display: block;
         }
     </style>
 </head>
 
 <body>
-    <div class="status-dot waiting" id="statusDot"></div>
-    <div class="audio-button" id="audioButton">🔊</div>
-    <div class="track-info" id="trackInfo">Scanning...</div>
-    <div class="data-status" id="dataStatus">Waiting...</div>
-    <div id="container"></div>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Đang khởi tạo AR...</div>
+        <div class="loading-subtitle" id="loadingSubtitle">Vui lòng chờ trong giây lát</div>
+        <div class="loading-progress" id="loadingProgress">
+            <div class="loading-progress-bar" id="loadingProgressBar"></div>
+        </div>
+        <div class="loading-details" id="loadingDetails">Đang tải thư viện AR...</div>
+    </div>
 
-    <!-- Waiting Message -->
-    <div class="waiting-message" id="waitingMessage">
-        <div class="waiting-icon">📱</div>
-        <div class="waiting-title">Đang chờ dữ liệu</div>
-        <div class="waiting-subtitle">
-            Vui lòng đợi ứng dụng gửi dữ liệu hiện vật để bắt đầu quét AR
+    <!-- UI Overlay -->
+    <div class="ui-overlay">
+        <div class="audio-button" id="audioButton">🔊</div>
+
+        <div class="status-indicator" id="statusIndicator">
+            Đã phát hiện: Hiện vật
+        </div>
+
+        <div class="tracking-counter" id="trackingCounter">
+            Tracking: 0/0
+        </div>
+
+        <div class="model-info" id="modelInfo">
+            <div class="model-name" id="modelName">Tên hiện vật</div>
+            <div class="model-description" id="modelDescription">Mô tả hiện vật</div>
+            <div class="model-details" id="modelDetails"></div>
+            <div class="audio-info" id="audioInfo">
+                <span>🎵</span>
+                <span>Nhấn nút audio để nghe giới thiệu</span>
+            </div>
+        </div>
+
+        <div class="error-message" id="errorMessage">
+            <div class="error-icon">❌</div>
+            <div class="error-title">Lỗi khởi tạo AR</div>
+            <div class="error-subtitle">Không thể khởi tạo AR viewer</div>
+        </div>
+
+        <div class="fallback-mode" id="fallbackMode">
+            <div style="font-size: 24px; margin-bottom: 10px;">⚠️</div>
+            <div style="font-weight: 600; margin-bottom: 5px;">Chế độ dự phòng</div>
+            <div style="font-size: 14px;">AR không khả dụng, hiển thị model 3D thông thường</div>
+        </div>
+
+        <div class="debug-info" id="debugInfo">
+            <div>A-Frame: <span id="aframeStatus">Loading...</span></div>
+            <div>MindAR: <span id="mindarStatus">Loading...</span></div>
+            <div>Camera: <span id="cameraStatus">Checking...</span></div>
+            <div>Models: <span id="modelsStatus">0/0</span></div>
         </div>
     </div>
 
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
-        <div id="loadingText">Đang tải model chất lượng cao...</div>
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <div id="progressText">0%</div>
-    </div>
-
-    <div class="audio-controls" id="audioControls">
-        <div id="audioTitle">Đang phát audio</div>
-        <div class="audio-progress" id="audioProgress">
-            <div class="audio-progress-fill" id="audioProgressFill"></div>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 10px; opacity: 0.8;">
-            <span id="currentTime">0:00</span><span id="totalTime">0:00</span>
-        </div>
-    </div>
-
-    <div class="model-info" id="modelInfo">
-        <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;" id="modelName">Model Name</div>
-        <div style="font-size: 12px; opacity: 0.8; line-height: 1.3; margin-bottom: 8px;" id="modelDescription">Model
-            description</div>
-        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4CAF50;" id="audioInfo">
-            <span>🎵</span><span>Nhấn để nghe</span>
-        </div>
-    </div>
-
-    <div class="error-message" id="errorMessage">
-        <div style="font-size: 24px; margin-bottom: 8px;">❌</div>
-        <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">Lỗi</div>
-        <div style="font-size: 12px; opacity: 0.9;">Mô tả lỗi</div>
-    </div>
-
-    <button class="retry-button" id="retryButton">Thử lại</button>
+    <!-- Hidden Audio Element -->
     <audio id="audioPlayer" preload="metadata"></audio>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { MindARThree } from 'mindar-image-three';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    <!-- A-Frame Scene - Will be created dynamically -->
+    <div id="sceneContainer"></div>
 
-        // Core variables
-        let mindarThree = null, mixer = null, isModelLoaded = false, targetFound = false, audioPlayer = null, isAudioPlaying = false;
-        let anchors = [];
-        let currentTrackIndex = -1;
-        let artifactData = [];
-        let currentArtifact = null;
-        let isARInitialized = false;
-        let loadingTimeout = null;
+    <script>
+        // Global variables
+        let artifactsData = [];
+        let visibleTargets = new Set();
+        let currentArtifactIndex = -1;
+        let isAudioPlaying = false;
+        let dataReceived = false;
+        let modelBlobUrls = new Map();
+        let currentLoadingProgress = 0;
+        let totalModelsToLoad = 0;
+        let modelsLoaded = 0;
+        let arInitialized = false;
+        let fallbackMode = false;
 
-        // STRICT LOADING CONTROL - Silent blocking
-        let isCurrentlyLoading = false;
-        let currentLoadingModelIndex = -1;
-        let loadingStartTime = 0;
-        let loadingPromise = null;
+        // UI Elements
+        const loadingScreen = document.getElementById('loadingScreen');
+        const loadingText = document.getElementById('loadingText');
+        const loadingSubtitle = document.getElementById('loadingSubtitle');
+        const loadingProgress = document.getElementById('loadingProgress');
+        const loadingProgressBar = document.getElementById('loadingProgressBar');
+        const loadingDetails = document.getElementById('loadingDetails');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const trackingCounter = document.getElementById('trackingCounter');
+        const modelInfo = document.getElementById('modelInfo');
+        const modelName = document.getElementById('modelName');
+        const modelDescription = document.getElementById('modelDescription');
+        const modelDetails = document.getElementById('modelDetails');
+        const audioInfo = document.getElementById('audioInfo');
+        const audioButton = document.getElementById('audioButton');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const errorMessage = document.getElementById('errorMessage');
+        const fallbackModeEl = document.getElementById('fallbackMode');
+        const debugInfo = document.getElementById('debugInfo');
+        const aframeStatus = document.getElementById('aframeStatus');
+        const mindarStatus = document.getElementById('mindarStatus');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const modelsStatus = document.getElementById('modelsStatus');
 
-        // Memory Management
-        let modelCache = new Map();
-        let activeModels = new Map();
-        let urlValidationCache = new Map();
-
-        // Performance settings
-        let enableRotation = true;
-        let enableAnimations = true;
-        let highQuality = true;
-        let skipValidation = false;
-        let strictLoading = true;
-        let fpsCounter = 0;
-
-        // FREE ROTATION SYSTEM
-        let rotationSpeed = 0.025;
-        let rotationY = 0;
-        let rotationX = 0;
-        let rotationZ = 0;
-        let floatingOffset = 0;
-        let floatingSpeed = 0.004;
-        let floatingAmplitude = 0.01;
-        let rotationActive = false;
-
-        // Model info visibility
-        let isModelInfoVisible = false;
-
-        // Memory monitoring
-        let memoryUsage = 0;
-        let lastMemoryCheck = 0;
-        let memoryThreshold = 200;
-
-        const elements = {
-            statusDot: document.querySelector("#statusDot"),
-            audioButton: document.querySelector("#audioButton"),
-            trackInfo: document.querySelector("#trackInfo"),
-            dataStatus: document.querySelector("#dataStatus"),
-            rotationIndicator: document.querySelector("#rotationIndicator"),
-            waitingMessage: document.querySelector("#waitingMessage"),
-            loadingOverlay: document.querySelector("#loadingOverlay"),
-            loadingText: document.querySelector("#loadingText"),
-            progressFill: document.querySelector("#progressFill"),
-            progressText: document.querySelector("#progressText"),
-            modelInfo: document.querySelector("#modelInfo"),
-            modelName: document.querySelector("#modelName"),
-            modelDescription: document.querySelector("#modelDescription"),
-            audioInfo: document.querySelector("#audioInfo"),
-            audioControls: document.querySelector("#audioControls"),
-            audioTitle: document.querySelector("#audioTitle"),
-            audioProgress: document.querySelector("#audioProgress"),
-            audioProgressFill: document.querySelector("#audioProgressFill"),
-            currentTime: document.querySelector("#currentTime"),
-            totalTime: document.querySelector("#totalTime"),
-            errorMessage: document.querySelector("#errorMessage"),
-            retryButton: document.querySelector("#retryButton")
-        };
-
-        // Memory Management Functions
-        function getMemoryUsage() {
-            if (performance.memory) {
-                return Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
-            }
-            return 0;
-        }
-
-        function forceGarbageCollection() {
-            if (window.gc) {
-                window.gc();
-            }
-        }
-
-        // DISPOSE OLD MODEL COMPLETELY
-        function disposeModel(model) {
-            if (!model) return;
-
-            console.log('🗑️ Disposing model completely...');
-
-            model.traverse((child) => {
-                if (child.isMesh) {
-                    // Dispose geometry
-                    if (child.geometry) {
-                        child.geometry.dispose();
-                    }
-
-                    // Dispose materials
-                    if (child.material) {
-                        if (Array.isArray(child.material)) {
-                            child.material.forEach(material => {
-                                if (material.map) material.map.dispose();
-                                if (material.normalMap) material.normalMap.dispose();
-                                if (material.roughnessMap) material.roughnessMap.dispose();
-                                if (material.metalnessMap) material.metalnessMap.dispose();
-                                material.dispose();
-                            });
-                        } else {
-                            if (child.material.map) child.material.map.dispose();
-                            if (child.material.normalMap) child.material.normalMap.dispose();
-                            if (child.material.roughnessMap) child.material.roughnessMap.dispose();
-                            if (child.material.metalnessMap) child.material.metalnessMap.dispose();
-                            child.material.dispose();
-                        }
-                    }
+        // Demo data
+        const DEMO_ARTIFACTS = [
+            {
+                "tenHienVat3D": "Tượng sư tử đá chùa Hương Lãng",
+                "gioiThieu": "Tượng sư tử đá chùa Hương Lãng hiện đang lưu giữ tại Chùa Hương Lãng, xã Minh Hải, huyện Văn Lâm, tỉnh Hưng Yên, được công nhận là Bảo vật quốc gia.",
+                "model3dPcGlb": "https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/band-example/raccoon/scene.gltf",
+                "audio": "",
+                "chieuCao": "175",
+                "chieuDai": "280",
+                "chieuRong": "350",
+                "hienVatObj": {
+                    "nienDaiTuongDoi": "Cuối Thế kỷ XI - đầu Thế kỷ XII",
+                    "diaDiemLuuGiu": "Chùa Hương Lãng, xã Minh Hải, huyện Văn Lâm, tỉnh Hưng Yên"
                 }
-            });
-
-            // Remove from parent if exists
-            if (model.parent) {
-                model.parent.remove(model);
             }
+        ];
 
-            console.log('✅ Model disposed completely');
+        // Utility functions
+        function log(message, data = null) {
+            console.log(`[AR Viewer] ${message}`, data || '');
         }
 
-        // CLEAR ALL OLD MODELS WHEN LOADING NEW ONE
-        function clearAllOldModels() {
-            console.log('🧹 Clearing all old models to optimize memory...');
-
-            // Remove all active models from scene and dispose them
-            activeModels.forEach((model, index) => {
-                anchors.forEach(anchor => {
-                    if (anchor && anchor.group) {
-                        anchor.group.remove(model);
-                    }
-                });
-                disposeModel(model);
-            });
-
-            // Clear active models map
-            activeModels.clear();
-
-            // Clear all cached models
-            modelCache.forEach((model, key) => {
-                disposeModel(model);
-            });
-            modelCache.clear();
-
-            // Clear URL validation cache
-            urlValidationCache.clear();
-
-            // Stop any existing animations
-            if (mixer) {
-                mixer.stopAllAction();
-                mixer = null;
-            }
-
-            // Force garbage collection
-            forceGarbageCollection();
-
-            console.log('✅ All old models cleared successfully');
-        }
-
-        function cleanupMemory() {
-            const currentMemory = getMemoryUsage();
-            if (currentMemory > memoryThreshold) {
-                console.log(`Memory usage high (${currentMemory}MB), cleaning up...`);
-                clearAllOldModels();
+        function updateLoadingProgress(progress, details = '') {
+            loadingProgressBar.style.width = `${progress}%`;
+            if (details) {
+                loadingDetails.textContent = details;
             }
         }
 
-        // URL validation
-        async function validateModelUrl(url) {
-            if (!url || skipValidation) {
-                return true;
-            }
-
-            if (urlValidationCache.has(url)) {
-                return urlValidationCache.get(url);
-            }
-
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
-
-                await fetch(url, {
-                    method: 'HEAD',
-                    signal: controller.signal,
-                    mode: 'no-cors'
-                });
-
-                clearTimeout(timeoutId);
-                urlValidationCache.set(url, true);
-                return true;
-
-            } catch (error) {
-                console.log(`URL validation failed for ${url}, but proceeding anyway:`, error.message);
-                return true;
-            }
+        function updateDebugInfo() {
+            debugInfo.classList.add('visible');
+            aframeStatus.textContent = typeof AFRAME !== 'undefined' ? 'OK' : 'Error';
+            mindarStatus.textContent = typeof MINDAR !== 'undefined' ? 'OK' : 'Error';
+            modelsStatus.textContent = `${modelsLoaded}/${totalModelsToLoad}`;
         }
 
-        // FREE ROTATION ALGORITHM
-        function updateFreeRotation(model, deltaTime) {
-            if (!enableRotation || !model || !targetFound) return;
+        function showError(title, subtitle, duration = 5000) {
+            errorMessage.querySelector('.error-title').textContent = title;
+            errorMessage.querySelector('.error-subtitle').textContent = subtitle;
+            errorMessage.style.display = 'block';
 
-            // Continuous rotation on Y axis
-            rotationY += rotationSpeed * deltaTime * 60;
-            model.rotation.y = rotationY;
+            log(`ERROR: ${title} - ${subtitle}`);
 
-            // Subtle rotation on other axes for more dynamic look
-            const time = performance.now() * 0.001;
-            model.rotation.x = Math.sin(time * 0.5) * 0.1;
-            model.rotation.z = Math.cos(time * 0.3) * 0.05;
-
-            // Enhanced floating effect
-            floatingOffset += floatingSpeed * deltaTime * 60;
-            model.position.y += Math.sin(time * 2 + floatingOffset) * floatingAmplitude;
-
-            // Scale breathing effect
-            const scaleVariation = 1 + Math.sin(time * 1.5) * 0.02;
-            model.scale.setScalar(model.userData.originalScale * scaleVariation);
-
-            rotationActive = true;
-            elements.rotationIndicator.style.display = 'block';
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, duration);
         }
 
-        // SILENT LOADING CONTROL - No notifications, just return
-        function isLoadingBlocked() {
-            return strictLoading && isCurrentlyLoading;
+        function extractUrls(urlString) {
+            if (!urlString) return [];
+            return urlString.split(',').map(url => url.trim()).filter(url => url.length > 0);
         }
 
-        function startLoading(modelIndex) {
-            if (isLoadingBlocked()) {
-                console.log(`🚫 Loading blocked silently - Currently loading model ${currentLoadingModelIndex}`);
+        function getFirstUrl(urlString) {
+            const urls = extractUrls(urlString);
+            return urls.length > 0 ? urls[0] : null;
+        }
+
+        // Check if all required libraries are loaded
+        function checkDependencies() {
+            log('Checking dependencies...');
+
+            if (typeof AFRAME === 'undefined') {
+                log('A-Frame not loaded');
                 return false;
             }
 
-            isCurrentlyLoading = true;
-            currentLoadingModelIndex = modelIndex;
-            loadingStartTime = Date.now();
-            setStatus('loading');
+            if (typeof MINDAR === 'undefined') {
+                log('MindAR not loaded');
+                return false;
+            }
 
-            console.log(`🔄 Started loading model ${modelIndex}`);
+            log('All dependencies loaded successfully');
             return true;
         }
 
-        function finishLoading() {
-            const loadingDuration = Date.now() - loadingStartTime;
-            console.log(`✅ Finished loading model ${currentLoadingModelIndex} in ${loadingDuration}ms`);
+        // Initialize AR scene safely
+        function initializeARScene() {
+            return new Promise((resolve, reject) => {
+                try {
+                    log('Initializing AR scene...');
 
-            isCurrentlyLoading = false;
-            currentLoadingModelIndex = -1;
-            loadingStartTime = 0;
-            loadingPromise = null;
-            elements.loadingOverlay.style.display = 'none';
-            setStatus('default');
-        }
+                    const sceneContainer = document.getElementById('sceneContainer');
 
-        function parseArtifactToModelData(artifact, index) {
-            let modelUrl = null;
-            if (artifact.model3dPcGlb) {
-                const glbLinks = artifact.model3dPcGlb.split(',');
-                modelUrl = glbLinks[0].trim();
-            }
+                    // Create A-Frame scene
+                    const scene = document.createElement('a-scene');
+                    scene.setAttribute('mindar-image', 'imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/targets.mind; maxTrack: 3;');
+                    scene.setAttribute('color-space', 'sRGB');
+                    scene.setAttribute('renderer', 'colorManagement: true; physicallyCorrectLights');
+                    scene.setAttribute('vr-mode-ui', 'enabled: false');
+                    scene.setAttribute('device-orientation-permission-ui', 'enabled: false');
+                    scene.setAttribute('loading-screen', 'enabled: false');
+                    scene.setAttribute('stats', 'false');
+                    scene.id = 'ar-scene';
 
-            let audioUrl = null;
-            if (artifact.audio) {
-                audioUrl = artifact.audio;
-            }
+                    // Create assets
+                    const assets = document.createElement('a-assets');
+                    assets.id = 'ar-assets';
 
-            return {
-                index: index,
-                name: artifact.tenHienVat3D || artifact.hienVatObj?.tenHienVat || "Hiện vật 3D",
-                description: artifact.gioiThieu || artifact.hienVatObj?.mieuTa || "Mô tả hiện vật",
-                modelUrl: modelUrl,
-                audioUrl: audioUrl,
-                audioTitle: `Giới thiệu ${artifact.tenHienVat3D || 'hiện vật'}`,
-                dimensions: {
-                    height: artifact.chieuCao || artifact.hienVatObj?.chieuCao,
-                    length: artifact.chieuDai || artifact.hienVatObj?.chieuDai,
-                    width: artifact.chieuRong || artifact.hienVatObj?.chieuRong
-                },
-                period: artifact.hienVatObj?.nienDaiTuongDoi,
-                location: artifact.hienVatObj?.diaDiemLuuGiu
-            };
-        }
+                    // Add fallback model
+                    const fallbackAsset = document.createElement('a-asset-item');
+                    fallbackAsset.id = 'fallbackModel';
+                    fallbackAsset.src = 'https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/band-example/raccoon/scene.gltf';
+                    assets.appendChild(fallbackAsset);
 
-        // Data receiving with cleanup
-        function receiveDataFromReactNative(data) {
-            try {
-                console.log('Received data from React Native:', data);
+                    scene.appendChild(assets);
 
-                clearOldData();
+                    // Add lighting
+                    const ambientLight = document.createElement('a-light');
+                    ambientLight.setAttribute('type', 'ambient');
+                    ambientLight.setAttribute('color', '#ffffff');
+                    ambientLight.setAttribute('intensity', '1.0');
+                    scene.appendChild(ambientLight);
 
-                if (Array.isArray(data) && data.length > 0) {
-                    artifactData = data;
-                    elements.dataStatus.textContent = `${data.length} items`;
-                    elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
-                    elements.waitingMessage.style.display = 'none';
+                    const directionalLight = document.createElement('a-light');
+                    directionalLight.setAttribute('type', 'directional');
+                    directionalLight.setAttribute('position', '1 1 1');
+                    directionalLight.setAttribute('color', '#ffffff');
+                    directionalLight.setAttribute('intensity', '1.5');
+                    scene.appendChild(directionalLight);
 
-                    if (window.ReactNativeWebView) {
-                        window.ReactNativeWebView.postMessage(JSON.stringify({
-                            type: 'DATA_RECEIVED',
-                            data: { count: data.length, timestamp: Date.now() }
-                        }));
-                    }
+                    // Add camera
+                    const camera = document.createElement('a-camera');
+                    camera.setAttribute('position', '0 0 0');
+                    camera.setAttribute('look-controls', 'enabled: false');
+                    scene.appendChild(camera);
 
-                    data.forEach((artifact, index) => {
-                        const modelUrl = artifact.model3dPcGlb ? artifact.model3dPcGlb.split(',')[0].trim() : null;
-                        console.log(`Artifact ${index}:`, {
-                            name: artifact.tenHienVat3D,
-                            hasModel: !!artifact.model3dPcGlb,
-                            modelUrl: modelUrl,
-                            audio: artifact.audio
-                        });
+                    sceneContainer.appendChild(scene);
+
+                    // Wait for scene to load
+                    scene.addEventListener('loaded', () => {
+                        log('A-Frame scene loaded successfully');
+                        arInitialized = true;
+                        resolve(scene);
                     });
 
-                    if (!isARInitialized) {
-                        initAR();
-                    }
-                } else {
-                    console.warn('Invalid data received from React Native');
-                    elements.dataStatus.textContent = 'Invalid data';
-                    elements.dataStatus.style.background = 'rgba(255, 193, 7, 0.8)';
-                    showError("Dữ liệu không hợp lệ", "Dữ liệu nhận được không đúng định dạng");
-                }
-            } catch (error) {
-                console.error('Error processing data from React Native:', error);
-                elements.dataStatus.textContent = 'Error';
-                elements.dataStatus.style.background = 'rgba(244, 67, 54, 0.8)';
-                showError("Lỗi xử lý dữ liệu", "Không thể xử lý dữ liệu từ ứng dụng");
-            }
-        }
+                    scene.addEventListener('error', (error) => {
+                        log('A-Frame scene error:', error);
+                        reject(error);
+                    });
 
-        function clearOldData() {
-            console.log('Clearing old data...');
-
-            stopAudio();
-
-            // Clear all old models
-            clearAllOldModels();
-
-            // Reset loading state
-            isCurrentlyLoading = false;
-            currentLoadingModelIndex = -1;
-            loadingPromise = null;
-
-            currentTrackIndex = -1;
-            currentArtifact = null;
-            targetFound = false;
-            isModelLoaded = false;
-            isModelInfoVisible = false;
-            rotationActive = false;
-            rotationY = 0;
-            rotationX = 0;
-            rotationZ = 0;
-            floatingOffset = 0;
-
-            hideModelInfo();
-
-            console.log('Old data cleared successfully');
-        }
-
-        window.receiveDataFromReactNative = receiveDataFromReactNative;
-        window.setArtifactData = receiveDataFromReactNative;
-
-        window.addEventListener('message', function (event) {
-            try {
-                const message = JSON.parse(event.data);
-                if (message.type === 'ARTIFACT_DATA' && message.data) {
-                    receiveDataFromReactNative(message.data);
-                } else if (message.type === 'SET_ARTIFACTS' && message.artifacts) {
-                    receiveDataFromReactNative(message.artifacts);
-                }
-            } catch (error) {
-                if (typeof event.data === 'string') {
-                    try {
-                        const directData = JSON.parse(event.data);
-                        if (Array.isArray(directData)) {
-                            receiveDataFromReactNative(directData);
+                    // Timeout fallback
+                    setTimeout(() => {
+                        if (!arInitialized) {
+                            log('AR initialization timeout, switching to fallback mode');
+                            reject(new Error('AR initialization timeout'));
                         }
-                    } catch (e) {
-                        console.error('Failed to parse direct data:', e);
-                    }
+                    }, 10000);
+
+                } catch (error) {
+                    log('Error initializing AR scene:', error);
+                    reject(error);
                 }
-            }
-        });
-
-        document.addEventListener('message', function (event) {
-            window.dispatchEvent(new MessageEvent('message', { data: event.data }));
-        });
-
-        function getModelDataForTrack(trackIndex) {
-            if (artifactData.length > 0 && trackIndex < artifactData.length) {
-                const artifact = artifactData[trackIndex];
-                currentArtifact = artifact;
-                return parseArtifactToModelData(artifact, trackIndex);
-            }
-            console.warn(`No artifact found for track index ${trackIndex}`);
-            return null;
+            });
         }
 
-        // OPTIMIZED MODEL LOADING WITH OLD MODEL CLEARING
-        async function loadModel(fileLink, modelIndex) {
-            // SILENT LOADING CHECK - Just return if blocked
-            if (!startLoading(modelIndex)) {
-                return null;
-            }
+        // Create fallback 3D viewer (without AR)
+        function createFallbackViewer() {
+            log('Creating fallback 3D viewer...');
 
-            // CLEAR ALL OLD MODELS BEFORE LOADING NEW ONE
-            clearAllOldModels();
+            fallbackMode = true;
+            fallbackModeEl.classList.add('visible');
 
-            try {
-                if (!fileLink) {
-                    console.warn(`No model URL provided for index ${modelIndex}`);
-                    return null;
-                }
+            const sceneContainer = document.getElementById('sceneContainer');
 
-                console.log(`🔄 Starting to load optimized model ${modelIndex} from: ${fileLink}`);
+            // Create simple A-Frame scene without MindAR
+            const scene = document.createElement('a-scene');
+            scene.setAttribute('background', 'color: #ECECEC');
+            scene.setAttribute('vr-mode-ui', 'enabled: false');
+            scene.setAttribute('loading-screen', 'enabled: false');
+            scene.id = 'fallback-scene';
 
-                // Show loading overlay
-                elements.loadingOverlay.style.display = 'block';
-                updateProgress(0, `Đang tải model tối ưu ${modelIndex}...`);
+            // Add assets
+            const assets = document.createElement('a-assets');
+            assets.id = 'fallback-assets';
+            scene.appendChild(assets);
 
-                // URL validation (can be skipped)
-                if (!skipValidation) {
-                    const isValidUrl = await validateModelUrl(fileLink);
-                    if (!isValidUrl) {
-                        console.warn(`URL validation failed for index ${modelIndex}: ${fileLink}`);
-                    }
-                }
+            // Add lighting
+            const ambientLight = document.createElement('a-light');
+            ambientLight.setAttribute('type', 'ambient');
+            ambientLight.setAttribute('color', '#ffffff');
+            ambientLight.setAttribute('intensity', '0.6');
+            scene.appendChild(ambientLight);
 
-                // Create timestamped URL to avoid cache issues
-                const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}&opt=1`;
-                console.log(`📥 Loading optimized model from: ${timestampedUrl}`);
+            const directionalLight = document.createElement('a-light');
+            directionalLight.setAttribute('type', 'directional');
+            directionalLight.setAttribute('position', '2 4 5');
+            directionalLight.setAttribute('color', '#ffffff');
+            directionalLight.setAttribute('intensity', '0.8');
+            scene.appendChild(directionalLight);
 
-                // Set loading timeout
-                if (loadingTimeout) clearTimeout(loadingTimeout);
-                loadingTimeout = setTimeout(() => {
-                    finishLoading();
-                    console.error(`❌ Optimized model loading timeout for index ${modelIndex}`);
-                }, 30000);
+            // Add camera with controls
+            const camera = document.createElement('a-camera');
+            camera.setAttribute('position', '0 1.6 3');
+            camera.setAttribute('look-controls', 'enabled: true');
+            camera.setAttribute('wasd-controls', 'enabled: true');
+            scene.appendChild(camera);
 
-                const loader = new GLTFLoader();
+            sceneContainer.appendChild(scene);
 
-                // Create loading promise
-                loadingPromise = new Promise((resolve, reject) => {
-                    loader.load(
-                        timestampedUrl,
-                        (gltf) => {
-                            clearTimeout(loadingTimeout);
-                            updateProgress(90, "Thiết lập tối ưu...");
-
-                            console.log(`✅ Optimized Model ${modelIndex} loaded successfully`);
-
-                            const model = gltf.scene;
-
-                            // MODEL OPTIMIZATION
-                            const box = new THREE.Box3().setFromObject(model);
-                            const size = box.getSize(new THREE.Vector3());
-                            const maxDimension = Math.max(size.x, size.y, size.z);
-
-                            // Ensure model has reasonable size
-                            if (maxDimension === 0) {
-                                console.warn(`Model ${modelIndex} has zero size, using default scale`);
-                                model.scale.setScalar(1.0);
-                            } else {
-                                const scale = 1.2 / maxDimension;
-                                model.scale.setScalar(scale);
-                                const center = box.getCenter(new THREE.Vector3());
-                                model.position.sub(center.multiplyScalar(scale));
-                            }
-
-                            // MATERIAL OPTIMIZATION
-                            let meshCount = 0;
-                            model.traverse((child) => {
-                                if (child.isMesh) {
-                                    meshCount++;
-                                    if (child.material) {
-                                        // High quality settings
-                                        if (child.material.map) {
-                                            child.material.map.minFilter = THREE.LinearMipmapLinearFilter;
-                                            child.material.map.magFilter = THREE.LinearFilter;
-                                            child.material.map.generateMipmaps = true;
-                                            child.material.map.anisotropy = Math.min(4, mindarThree?.renderer?.capabilities?.getMaxAnisotropy() || 1);
-                                        }
-
-                                        // Enhanced material properties
-                                        child.material.transparent = true;
-                                        child.material.alphaTest = 0.1;
-                                        child.material.side = THREE.DoubleSide;
-
-                                        // Better lighting
-                                        if (child.material.metalness !== undefined) {
-                                            child.material.metalness = 0.1;
-                                            child.material.roughness = 0.8;
-                                        }
-                                    }
-
-                                    // Enhanced shadow settings
-                                    child.castShadow = highQuality;
-                                    child.receiveShadow = highQuality;
-                                    child.frustumCulled = true;
-                                    child.matrixAutoUpdate = true;
-                                }
-                            });
-
-                            console.log(`Optimized Model ${modelIndex} has ${meshCount} meshes`);
-
-                            // ANIMATION SETUP
-                            if (gltf.animations && gltf.animations.length > 0 && enableAnimations) {
-                                console.log(`Optimized Model ${modelIndex} has ${gltf.animations.length} animations`);
-                                if (mixer) {
-                                    mixer.stopAllAction();
-                                    mixer = null;
-                                }
-
-                                mixer = new THREE.AnimationMixer(model);
-                                gltf.animations.forEach((clip) => {
-                                    const action = mixer.clipAction(clip);
-                                    action.setLoop(THREE.LoopRepeat);
-                                    action.timeScale = 1.0;
-                                    action.play();
-                                });
-                            }
-
-                            // Store model metadata
-                            model.userData = {
-                                index: modelIndex,
-                                lastUsed: Date.now(),
-                                originalScale: model.scale.x,
-                                isOptimized: true,
-                                isHighQuality: highQuality,
-                                meshCount: meshCount,
-                                hasAnimations: gltf.animations && gltf.animations.length > 0
-                            };
-
-                            updateProgress(100, "Hoàn thành tối ưu!");
-
-                            console.log(`🎉 Optimized Model ${modelIndex} ready for FREE ROTATION display`);
-                            resolve(model);
-                        },
-                        (progress) => {
-                            if (progress.lengthComputable) {
-                                const percentComplete = (progress.loaded / progress.total) * 80;
-                                updateProgress(percentComplete, `${Math.round(progress.loaded / 1024)}KB (Opt)`);
-                            }
-                        },
-                        (error) => {
-                            clearTimeout(loadingTimeout);
-                            console.error(`❌ Error loading optimized model ${modelIndex}:`, error);
-                            reject(error);
-                        }
-                    );
-                });
-
-                const result = await loadingPromise;
-                return result;
-
-            } catch (error) {
-                if (loadingTimeout) clearTimeout(loadingTimeout);
-                console.error(`❌ Error loading optimized model ${modelIndex}:`, error);
-                showError("Lỗi tải model tối ưu", `Model ${modelIndex}: ${error.message}`);
-                return null;
-            } finally {
-                finishLoading();
-            }
-        }
-
-        function setStatus(type) {
-            elements.statusDot.className = `status-dot ${type}`;
-        }
-
-        function updateProgress(progress, details) {
-            elements.progressFill.style.width = `${progress}%`;
-            elements.progressText.textContent = `${Math.round(progress)}%`;
-            if (details) elements.loadingText.textContent = details;
-        }
-
-        function showError(title, subtitle) {
-            elements.errorMessage.querySelector('div:nth-child(2)').textContent = title;
-            elements.errorMessage.querySelector('div:nth-child(3)').textContent = subtitle;
-            elements.errorMessage.style.display = 'block';
-            elements.retryButton.style.display = 'block';
-            setStatus('error');
+            // Load demo model
+            loadFallbackModel();
 
             setTimeout(() => {
-                elements.errorMessage.style.display = 'none';
-                elements.retryButton.style.display = 'none';
-            }, 5000);
+                fallbackModeEl.classList.remove('visible');
+                loadingScreen.style.display = 'none';
+            }, 3000);
         }
 
-        function formatTime(seconds) {
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        function loadFallbackModel() {
+            const scene = document.getElementById('fallback-scene');
+            const assets = document.getElementById('fallback-assets');
+
+            if (!scene || !assets) return;
+
+            // Add model asset
+            const modelAsset = document.createElement('a-asset-item');
+            modelAsset.id = 'demoModel';
+            modelAsset.src = DEMO_ARTIFACTS[0].model3dPcGlb;
+            assets.appendChild(modelAsset);
+
+            // Create model entity
+            const modelEntity = document.createElement('a-entity');
+            modelEntity.setAttribute('position', '0 0 0');
+
+            const model = document.createElement('a-gltf-model');
+            model.setAttribute('src', '#demoModel');
+            model.setAttribute('scale', '0.5 0.5 0.5');
+            model.setAttribute('animation', 'property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear');
+
+            modelEntity.appendChild(model);
+            scene.appendChild(modelEntity);
+
+            // Show model info
+            showModelInfo(0);
         }
 
-        function initAudio(modelData) {
-            if (!modelData.audioUrl) {
-                elements.audioInfo.innerHTML = '<span>❌</span><span>Không có audio</span>';
+        // Audio functions
+        function initAudio(audioUrl) {
+            if (!audioUrl) {
+                audioInfo.classList.add('hidden');
+                audioButton.style.display = 'none';
                 return;
             }
 
-            audioPlayer = elements.audioPlayer || document.querySelector("#audioPlayer");
-            audioPlayer.src = modelData.audioUrl;
-
-            audioPlayer.addEventListener('loadedmetadata', () => elements.totalTime.textContent = formatTime(audioPlayer.duration));
-            audioPlayer.addEventListener('timeupdate', () => {
-                if (audioPlayer.duration) {
-                    const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-                    elements.audioProgressFill.style.width = `${progress}%`;
-                    elements.currentTime.textContent = formatTime(audioPlayer.currentTime);
-                }
-            });
-            audioPlayer.addEventListener('ended', stopAudio);
-            audioPlayer.addEventListener('error', () => elements.audioInfo.innerHTML = '<span>❌</span><span>Lỗi audio</span>');
-        }
-
-        function toggleModelInfo() {
-            isModelInfoVisible = !isModelInfoVisible;
-
-            if (isModelInfoVisible) {
-                elements.modelInfo.classList.remove('hidden');
-                elements.modelInfo.style.display = 'block';
-            } else {
-                elements.modelInfo.classList.add('hidden');
-                setTimeout(() => {
-                    if (!isModelInfoVisible) {
-                        elements.modelInfo.style.display = 'none';
-                    }
-                }, 400);
-            }
+            audioPlayer.src = audioUrl;
+            audioButton.style.display = 'flex';
+            audioInfo.classList.remove('hidden');
         }
 
         function playAudio() {
-            if (audioPlayer) {
+            if (audioPlayer && audioPlayer.src) {
                 audioPlayer.play().then(() => {
                     isAudioPlaying = true;
-                    elements.audioButton.className = 'audio-button playing';
-                    elements.audioButton.textContent = '⏸️';
-                    elements.audioControls.style.display = 'block';
-                    const modelData = getModelDataForTrack(currentTrackIndex);
-                    if (modelData) {
-                        elements.audioTitle.textContent = modelData.audioTitle;
-                    }
-                    elements.audioInfo.style.display = 'none';
-
-                    isModelInfoVisible = true;
-                    elements.modelInfo.classList.remove('hidden');
-                    elements.modelInfo.style.display = 'block';
-                }).catch(console.error);
+                    audioButton.className = 'audio-button playing';
+                    audioButton.textContent = '⏸️';
+                    audioInfo.classList.add('hidden');
+                }).catch(error => {
+                    log('Audio play error:', error);
+                    showError('Lỗi Audio', 'Không thể phát audio');
+                });
             }
         }
 
@@ -1146,8 +697,8 @@
             if (audioPlayer) {
                 audioPlayer.pause();
                 isAudioPlaying = false;
-                elements.audioButton.className = 'audio-button';
-                elements.audioButton.textContent = '▶️';
+                audioButton.className = 'audio-button paused';
+                audioButton.textContent = '▶️';
             }
         }
 
@@ -1156,341 +707,188 @@
                 audioPlayer.pause();
                 audioPlayer.currentTime = 0;
                 isAudioPlaying = false;
-                elements.audioButton.className = 'audio-button';
-                elements.audioButton.textContent = '🔊';
-                elements.audioControls.style.display = 'none';
-                elements.audioInfo.style.display = 'flex';
+                audioButton.className = 'audio-button';
+                audioButton.textContent = '🔊';
+                audioInfo.classList.remove('hidden');
             }
         }
 
-        function showModelInfo(data, trackIndex) {
-            elements.modelName.textContent = `${data.name} (Track ${trackIndex})`;
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
 
-            let description = data.description;
-            if (description.length > 120) {
-                description = description.substring(0, 120) + '...';
+        // Model info functions
+        function showModelInfo(index) {
+            const data = artifactsData[index];
+            if (!data) return;
+
+            currentArtifactIndex = index;
+
+            modelName.textContent = data.tenHienVat3D || 'Hiện vật văn hóa';
+
+            const description = data.gioiThieu || data.hienVatObj?.mieuTa || 'Không có mô tả';
+            const truncatedDesc = description.length > 200 ? description.substring(0, 200) + '...' : description;
+            modelDescription.textContent = truncatedDesc;
+
+            const details = [];
+            if (data.hienVatObj?.nienDaiTuongDoi) {
+                details.push(`📅 ${data.hienVatObj.nienDaiTuongDoi}`);
             }
-
-            elements.modelDescription.textContent = description;
-
-            elements.modelInfo.style.display = 'none';
-            isModelInfoVisible = false;
-
-            if (data.audioUrl) {
-                elements.audioButton.style.display = 'flex';
-                initAudio(data);
-
-                // Auto play audio when model is shown
-                setTimeout(() => {
-                    playAudio();
-                }, 500);
+            if (data.chieuCao && data.chieuDai && data.chieuRong) {
+                details.push(`📏 ${data.chieuCao} × ${data.chieuDai} × ${data.chieuRong} cm`);
+            } else if (data.chieuCao) {
+                details.push(`📏 Cao: ${data.chieuCao} cm`);
             }
+            if (data.hienVatObj?.diaDiemLuuGiu) {
+                details.push(`📍 ${data.hienVatObj.diaDiemLuuGiu}`);
+            }
+            modelDetails.innerHTML = details.join('<br>');
 
-            elements.trackInfo.textContent = `Track ${trackIndex} - Index ${data.index} (Optimized)`;
-            elements.trackInfo.style.display = 'block';
+            modelInfo.classList.add('visible');
+            statusIndicator.textContent = `Hiển thị: ${data.tenHienVat3D}`;
+            statusIndicator.classList.add('visible');
+
+            const audioUrl = getFirstUrl(data.audio);
+            initAudio(audioUrl);
         }
 
         function hideModelInfo() {
-            isModelInfoVisible = false;
-            elements.modelInfo.classList.add('hidden');
-            setTimeout(() => {
-                if (!isModelInfoVisible) {
-                    elements.modelInfo.style.display = 'none';
-                }
-            }, 400);
-
-            elements.audioButton.style.display = 'none';
-            elements.audioControls.style.display = 'none';
-            elements.trackInfo.style.display = 'none';
-            elements.rotationIndicator.style.display = 'none';
+            modelInfo.classList.remove('visible');
+            statusIndicator.classList.remove('visible');
+            audioButton.style.display = 'none';
             stopAudio();
-        }
-
-        async function initAR() {
-            try {
-                if (artifactData.length === 0) {
-                    showError("Không có dữ liệu", "Chưa nhận được dữ liệu hiện vật");
-                    return;
-                }
-
-                elements.errorMessage.style.display = 'none';
-                elements.retryButton.style.display = 'none';
-                setStatus('loading');
-
-                console.log('🚀 Initializing optimized AR with FREE ROTATION...');
-
-                mindarThree = new MindARThree({
-                    container: document.querySelector("#container"),
-                    imageTargetSrc: "https://fuukyqvnitlhdhwygfcy.supabase.co/storage/v1/object/public/qnail//demo.mind"
-                });
-
-                const { renderer, scene, camera } = mindarThree;
-
-                // RENDERER SETTINGS
-                const pixelRatio = Math.min(window.devicePixelRatio, 2);
-                renderer.setPixelRatio(pixelRatio);
-                renderer.shadowMap.enabled = true;
-                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                renderer.antialias = true;
-                renderer.powerPreference = "high-performance";
-                renderer.outputEncoding = THREE.sRGBEncoding;
-                renderer.toneMapping = THREE.ACESFilmicToneMapping;
-                renderer.toneMappingExposure = 1.0;
-
-                console.log(`🎨 Renderer configured for optimized quality with FREE ROTATION (pixel ratio: ${pixelRatio})`);
-
-                const maxTargets = Math.min(artifactData.length, 8);
-                console.log(`Creating ${maxTargets} optimized AR targets with FREE ROTATION`);
-
-                for (let i = 0; i < maxTargets; i++) {
-                    try {
-                        const anchor = mindarThree.addAnchor(i);
-                        anchors.push(anchor);
-
-                        anchor.onTargetFound = async () => {
-                            targetFound = true;
-                            currentTrackIndex = i;
-
-                            console.log(`🎯 Target ${i} found! Loading optimized artifact with FREE ROTATION at index ${i}`);
-
-                            const modelData = getModelDataForTrack(i);
-                            if (!modelData) {
-                                console.warn(`❌ No model data for index ${i}`);
-                                return;
-                            }
-
-                            // Show model info
-                            showModelInfo(modelData, i);
-
-                            if (!modelData.modelUrl) {
-                                console.warn(`❌ No model URL for index ${i}`);
-                                return;
-                            }
-
-                            console.log(`📦 Loading optimized model for FREE ROTATION index ${i}: ${modelData.name}`);
-
-                            // Always load fresh model (old ones are cleared)
-                            try {
-                                const model = await loadModel(modelData.modelUrl, i);
-                                if (model) {
-                                    activeModels.set(i, model);
-                                    anchor.group.add(model);
-                                    isModelLoaded = true;
-                                    console.log(`✅ Optimized model ${i} loaded and added to scene with FREE ROTATION`);
-                                }
-                            } catch (error) {
-                                console.error(`❌ Failed to load optimized model ${i}:`, error);
-                            }
-                        };
-
-                        anchor.onTargetLost = () => {
-                            if (currentTrackIndex === i) {
-                                console.log(`👋 Target ${i} lost`);
-                                targetFound = false;
-                                hideModelInfo();
-
-                                if (activeModels.has(i)) {
-                                    const model = activeModels.get(i);
-                                    anchor.group.remove(model);
-                                }
-                            }
-                        };
-
-                    } catch (error) {
-                        console.log(`Target ${i} not found, stopping at ${i} targets`);
-                        break;
-                    }
-                }
-
-                // LIGHTING
-                scene.add(new THREE.AmbientLight(0x404040, 1.5));
-
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
-                directionalLight.position.set(5, 5, 5);
-                directionalLight.castShadow = true;
-                directionalLight.shadow.mapSize.width = 2048;
-                directionalLight.shadow.mapSize.height = 2048;
-                directionalLight.shadow.camera.near = 0.5;
-                directionalLight.shadow.camera.far = 50;
-                scene.add(directionalLight);
-
-                // Additional fill light
-                const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
-                fillLight.position.set(-5, 3, -5);
-                scene.add(fillLight);
-
-                await mindarThree.start();
-                setStatus('default');
-                isARInitialized = true;
-
-                console.log('🎉 Optimized AR with FREE ROTATION initialized successfully');
-
-                const clock = new THREE.Clock();
-                let fpsTime = 0;
-                let fpsFrames = 0;
-
-                renderer.setAnimationLoop(() => {
-                    const delta = clock.getDelta();
-                    const currentTime = performance.now();
-
-                    // FPS calculation
-                    fpsFrames++;
-                    fpsTime += delta;
-                    if (fpsTime >= 1.0) {
-                        fpsCounter = Math.round(fpsFrames / fpsTime);
-                        fpsFrames = 0;
-                        fpsTime = 0;
-                    }
-
-                    // Memory monitoring
-                    if (currentTime - lastMemoryCheck > 15000) {
-                        memoryUsage = getMemoryUsage();
-                        lastMemoryCheck = currentTime;
-
-                        if (memoryUsage > memoryThreshold) {
-                            cleanupMemory();
-                        }
-                    }
-
-                    // Animation update
-                    if (mixer && enableAnimations && fpsCounter > 15) {
-                        mixer.update(delta);
-                    }
-
-                    // FREE ROTATION UPDATE
-                    if (currentTrackIndex >= 0 && activeModels.has(currentTrackIndex)) {
-                        const currentModel = activeModels.get(currentTrackIndex);
-                        updateFreeRotation(currentModel, delta);
-                    }
-
-                    renderer.render(scene, camera);
-                });
-
-            } catch (error) {
-                console.error("❌ Optimized AR with FREE ROTATION initialization error:", error);
-                showError("Không thể khởi tạo AR tối ưu", "Vui lòng cho phép truy cập camera");
-            }
-        }
-
-        function cleanup() {
-            console.log('🧹 Starting optimized cleanup...');
-
-            if (loadingTimeout) {
-                clearTimeout(loadingTimeout);
-                loadingTimeout = null;
-            }
-
-            // Reset loading state
-            isCurrentlyLoading = false;
-            currentLoadingModelIndex = -1;
-            loadingPromise = null;
-
-            if (mindarThree) {
-                mindarThree.stop();
-                mindarThree.renderer.setAnimationLoop(null);
-            }
-
-            if (mixer) {
-                mixer.stopAllAction();
-                mixer = null;
-            }
-
-            // Clear all models
-            clearAllOldModels();
-
-            stopAudio();
-            isModelLoaded = false;
-            targetFound = false;
-            currentTrackIndex = -1;
-            mindarThree = null;
-            anchors = [];
-            isARInitialized = false;
-            rotationActive = false;
-            rotationY = 0;
-            rotationX = 0;
-            rotationZ = 0;
-            floatingOffset = 0;
-
-            elements.rotationIndicator.style.display = 'none';
-
-            forceGarbageCollection();
-            console.log('✅ Optimized cleanup completed');
+            currentArtifactIndex = -1;
         }
 
         // Event listeners
-        elements.audioButton.addEventListener('click', () => {
+        audioButton.addEventListener('click', () => {
             if (isAudioPlaying) {
                 pauseAudio();
             } else {
                 playAudio();
             }
-            toggleModelInfo();
         });
 
-        elements.audioProgress.addEventListener('click', (e) => {
-            if (audioPlayer && audioPlayer.duration) {
-                const rect = elements.audioProgress.getBoundingClientRect();
-                const percentage = (e.clientX - rect.left) / rect.width;
-                audioPlayer.currentTime = percentage * audioPlayer.duration;
+        // Message handling from React Native
+        window.addEventListener("message", function (event) {
+            try {
+                log("Received message from React Native");
+
+                let data;
+                if (typeof event.data === 'string') {
+                    data = JSON.parse(event.data);
+                } else {
+                    data = event.data;
+                }
+
+                if (Array.isArray(data) && data.length > 0) {
+                    dataReceived = true;
+                    artifactsData = data;
+                    log(`Received ${artifactsData.length} artifacts`);
+
+                    // Update display if in fallback mode
+                    if (fallbackMode) {
+                        showModelInfo(0);
+                    }
+
+                } else if (data && (data.tenHienVat3D || data.hienVatObj)) {
+                    dataReceived = true;
+                    artifactsData = [data];
+                    log("Received single artifact:", data.tenHienVat3D);
+
+                    if (fallbackMode) {
+                        showModelInfo(0);
+                    }
+                }
+            } catch (error) {
+                log("Error processing message:", error);
+                showError("Lỗi dữ liệu", "Không thể xử lý dữ liệu từ ứng dụng");
             }
         });
 
-        elements.retryButton.addEventListener('click', () => {
-            cleanup();
-            if (artifactData.length > 0) {
-                initAR();
-            } else {
-                elements.waitingMessage.style.display = 'block';
-                setStatus('waiting');
+        // Send ready message to React Native
+        function sendReadyMessage() {
+            try {
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                        type: 'ready',
+                        message: 'AR viewer is ready',
+                        mode: fallbackMode ? 'fallback' : 'ar'
+                    }));
+                }
+            } catch (error) {
+                log("ReactNativeWebView not available");
             }
-        });
+        }
 
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function (event) {
-            const now = (new Date()).getTime();
-            if (now - lastTouchEnd <= 300) {
-                event.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, false);
+        // Initialize everything
+        async function initialize() {
+            try {
+                log('Starting initialization...');
+                updateLoadingProgress(10, 'Kiểm tra thư viện...');
+                updateDebugInfo();
 
-        window.addEventListener('load', () => {
-            console.log('📱 Optimized WebView with FREE ROTATION loaded, waiting for data from React Native...');
+                // Wait a bit for all scripts to load
+                await new Promise(resolve => setTimeout(resolve, 1000));
 
-            if (window.ReactNativeWebView) {
-                window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'WEBVIEW_READY',
-                    timestamp: Date.now(),
-                    quality: 'OPTIMIZED',
-                    rotation: 'FREE'
-                }));
-            }
-        });
+                updateLoadingProgress(30, 'Kiểm tra dependencies...');
 
-        window.addEventListener('beforeunload', cleanup);
+                if (!checkDependencies()) {
+                    throw new Error('Required libraries not loaded');
+                }
 
-        // Memory cleanup on visibility change
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                if (mixer) mixer.timeScale = 0;
+                updateLoadingProgress(50, 'Khởi tạo AR...');
+
+                // Try to initialize AR
+                try {
+                    await initializeARScene();
+                    updateLoadingProgress(80, 'AR đã sẵn sàng');
+                    log('AR initialization successful');
+                } catch (arError) {
+                    log('AR initialization failed, switching to fallback mode:', arError);
+                    updateLoadingProgress(60, 'Chuyển sang chế độ dự phòng...');
+                    createFallbackViewer();
+                    return;
+                }
+
+                updateLoadingProgress(90, 'Tải dữ liệu demo...');
+
+                // Load demo data
+                artifactsData = DEMO_ARTIFACTS;
+
+                updateLoadingProgress(100, 'Hoàn tất!');
 
                 setTimeout(() => {
-                    if (document.hidden) {
-                        cleanupMemory();
-                    }
-                }, 3000);
-            } else {
-                if (mixer && enableAnimations) mixer.timeScale = 1;
+                    loadingScreen.style.display = 'none';
+                    sendReadyMessage();
+                }, 1000);
+
+            } catch (error) {
+                log('Initialization failed:', error);
+                showError('Lỗi khởi tạo', 'Không thể khởi tạo AR viewer');
+
+                // Try fallback mode as last resort
+                setTimeout(() => {
+                    createFallbackViewer();
+                }, 2000);
             }
+        }
+
+        // Start initialization when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            log('DOM loaded, starting initialization...');
+            initialize();
         });
 
-        // Performance monitoring
-        setInterval(() => {
-            if (fpsCounter < 20) {
-                console.warn('⚠️ Low FPS detected in optimized mode with FREE ROTATION');
+        // Also try when window loads
+        window.addEventListener('load', () => {
+            log('Window loaded');
+            if (!arInitialized && !fallbackMode) {
+                initialize();
             }
-        }, 10000);
-
+        });
     </script>
 </body>
 
