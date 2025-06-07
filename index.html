@@ -1,35 +1,892 @@
-<html>
+<!DOCTYPE html>
+<html lang="vi">
 
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AR Audio Scanner</title>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+        "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+      }
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        .status-dot {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4CAF50;
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.loading {
+            background: #FFC107;
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+        }
+
+        .status-dot.error {
+            background: #f44336;
+            box-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
+            animation: none;
+        }
+
+        .status-dot.waiting {
+            background: #9E9E9E;
+            box-shadow: 0 0 10px rgba(158, 158, 158, 0.5);
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.7;
+                transform: scale(1.2);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .audio-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 30px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 24px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .audio-button.playing {
+            background: rgba(76, 175, 80, 0.9);
+            border-color: rgba(76, 175, 80, 0.5);
+            animation: audioPlaying 2s infinite;
+        }
+
+        @keyframes audioPlaying {
+
+            0%,
+            100% {
+                box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 8px 32px rgba(76, 175, 80, 0.6);
+            }
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 15;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+            margin: 15px auto 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .model-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 15px;
+            z-index: 8;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            color: white;
+        }
+
+        .audio-controls {
+            position: fixed;
+            bottom: 100px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 15px;
+            padding: 15px;
+            z-index: 9;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            color: white;
+        }
+
+        .audio-progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .audio-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.1s ease;
+            border-radius: 3px;
+        }
+
+        .error-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 15;
+            backdrop-filter: blur(20px);
+            display: none;
+            max-width: 90vw;
+        }
+
+        .retry-button {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 16;
+            display: none;
+        }
+
+        .track-info {
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            z-index: 10;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+
+        .waiting-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 15;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 90vw;
+        }
+
+        .waiting-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+
+        .waiting-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .waiting-subtitle {
+            font-size: 14px;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+
+        .data-status {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: rgba(158, 158, 158, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            z-index: 10;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
 </head>
 
 <body>
-    <a-scene
-        mindar-image="imageTargetSrc: https://u2502-dev.dttt.vn/gwdevv5/file/v5/FileObject/public/2964ae82-9f80-4d45-a79a-e1e902bfeb6b/download; maxTrack: 2"
-        color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false"
-        device-orientation-permission-ui="enabled: false">
-        <a-assets>
-            <a-asset-item id="bearModel"
-                src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/band-example/bear/scene.gltf"></a-asset-item>
-            <a-asset-item id="raccoonModel"
-                src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/examples/image-tracking/assets/band-example/raccoon/scene.gltf"></a-asset-item>
-        </a-assets>
+    <div class="status-dot waiting" id="statusDot"></div>
+    <div class="audio-button" id="audioButton">🔊</div>
+    <div class="track-info" id="trackInfo">Scanning...</div>
+    <div class="data-status" id="dataStatus">Waiting for data...</div>
+    <div id="container"></div>
 
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <!-- Waiting Message -->
+    <div class="waiting-message" id="waitingMessage">
+        <div class="waiting-icon">📱</div>
+        <div class="waiting-title">Đang chờ dữ liệu từ ứng dụng</div>
+        <div class="waiting-subtitle">
+            Vui lòng đợi ứng dụng React Native gửi dữ liệu hiện vật để bắt đầu quét AR.<br>
+            Ứng dụng sẽ tự động khởi động khi nhận được dữ liệu.
+        </div>
+    </div>
 
-        <a-entity mindar-image-target="targetIndex: 0">
-            <a-gltf-model rotation="0 0 0 " position="0 -0.25 0" scale="0.05 0.05 0.05" src="#raccoonModel"
-                animation-mixer>
-        </a-entity>
-        <a-entity mindar-image-target="targetIndex: 1">
-            <a-gltf-model rotation="0 0 0 " position="0 -0.25 0" scale="0.05 0.05 0.05" src="#bearModel"
-                animation-mixer>
-        </a-entity>
-    </a-scene>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div id="loadingText">Đang tải model...</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div id="progressText">0%</div>
+    </div>
+
+    <div class="audio-controls" id="audioControls">
+        <div id="audioTitle">Đang phát audio</div>
+        <div class="audio-progress" id="audioProgress">
+            <div class="audio-progress-fill" id="audioProgressFill"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; opacity: 0.8;">
+            <span id="currentTime">0:00</span><span id="totalTime">0:00</span>
+        </div>
+    </div>
+
+    <div class="model-info" id="modelInfo">
+        <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;" id="modelName">Model Name</div>
+        <div style="font-size: 14px; opacity: 0.8; line-height: 1.4; margin-bottom: 10px;" id="modelDescription">Model
+            description</div>
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #4CAF50;" id="audioInfo">
+            <span>🎵</span><span>Nhấn nút audio để nghe giới thiệu</span>
+        </div>
+    </div>
+
+    <div class="error-message" id="errorMessage">
+        <div style="font-size: 32px; margin-bottom: 10px;">❌</div>
+        <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">Lỗi</div>
+        <div style="font-size: 14px; opacity: 0.9;">Mô tả lỗi</div>
+    </div>
+
+    <button class="retry-button" id="retryButton">Thử lại</button>
+    <audio id="audioPlayer" preload="metadata"></audio>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { MindARThree } from 'mindar-image-three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        let mindarThree = null, currentModel = null, mixer = null, isModelLoaded = false, targetFound = false, audioPlayer = null, isAudioPlaying = false;
+        let anchors = [];
+        let currentTrackIndex = -1;
+        let artifactData = [];
+        let currentArtifact = null;
+        let isARInitialized = false;
+
+        const elements = {
+            statusDot: document.querySelector("#statusDot"),
+            audioButton: document.querySelector("#audioButton"),
+            trackInfo: document.querySelector("#trackInfo"),
+            dataStatus: document.querySelector("#dataStatus"),
+            waitingMessage: document.querySelector("#waitingMessage"),
+            loadingOverlay: document.querySelector("#loadingOverlay"),
+            loadingText: document.querySelector("#loadingText"),
+            progressFill: document.querySelector("#progressFill"),
+            progressText: document.querySelector("#progressText"),
+            modelInfo: document.querySelector("#modelInfo"),
+            modelName: document.querySelector("#modelName"),
+            modelDescription: document.querySelector("#modelDescription"),
+            audioInfo: document.querySelector("#audioInfo"),
+            audioControls: document.querySelector("#audioControls"),
+            audioTitle: document.querySelector("#audioTitle"),
+            audioProgress: document.querySelector("#audioProgress"),
+            audioProgressFill: document.querySelector("#audioProgressFill"),
+            currentTime: document.querySelector("#currentTime"),
+            totalTime: document.querySelector("#totalTime"),
+            errorMessage: document.querySelector("#errorMessage"),
+            retryButton: document.querySelector("#retryButton")
+        };
+
+        // Function để parse model data từ artifact
+        function parseArtifactToModelData(artifact) {
+            let modelUrl = null;
+            if (artifact.model3dPcGlb) {
+                const glbLinks = artifact.model3dPcGlb.split(',');
+                modelUrl = glbLinks[0].trim();
+            }
+
+            let audioUrl = null;
+            if (artifact.audio) {
+                audioUrl = artifact.audio;
+            }
+
+            return {
+                name: artifact.tenHienVat3D || artifact.hienVatObj?.tenHienVat || "Hiện vật 3D",
+                description: artifact.gioiThieu || artifact.hienVatObj?.mieuTa || "Mô tả hiện vật",
+                modelUrl: modelUrl,
+                audioUrl: audioUrl,
+                audioTitle: `Giới thiệu ${artifact.tenHienVat3D || 'hiện vật'}`,
+                dimensions: {
+                    height: artifact.chieuCao || artifact.hienVatObj?.chieuCao,
+                    length: artifact.chieuDai || artifact.hienVatObj?.chieuDai,
+                    width: artifact.chieuRong || artifact.hienVatObj?.chieuRong
+                },
+                period: artifact.hienVatObj?.nienDaiTuongDoi,
+                location: artifact.hienVatObj?.diaDiemLuuGiu
+            };
+        }
+
+        // Nhận dữ liệu từ React Native WebView - Hỗ trợ nhiều cách gửi
+        function receiveDataFromReactNative(data) {
+            try {
+                console.log('Received data from React Native:', data);
+
+                if (Array.isArray(data) && data.length > 0) {
+                    artifactData = data;
+                    elements.dataStatus.textContent = `Loaded ${data.length} artifacts`;
+                    elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
+                    elements.waitingMessage.style.display = 'none';
+
+                    data.forEach((artifact, index) => {
+                        console.log(`Artifact ${index}:`, {
+                            name: artifact.tenHienVat3D,
+                            model3dPcGlb: artifact.model3dPcGlb,
+                            audio: artifact.audio
+                        });
+                    });
+
+                    if (!isARInitialized) {
+                        initAR();
+                    }
+                } else {
+                    console.warn('Invalid data received from React Native');
+                    elements.dataStatus.textContent = 'Invalid data received';
+                    elements.dataStatus.style.background = 'rgba(255, 193, 7, 0.8)';
+                    showError("Dữ liệu không hợp lệ", "Dữ liệu nhận được từ ứng dụng không đúng định dạng");
+                }
+            } catch (error) {
+                console.error('Error processing data from React Native:', error);
+                elements.dataStatus.textContent = 'Error processing data';
+                elements.dataStatus.style.background = 'rgba(244, 67, 54, 0.8)';
+                showError("Lỗi xử lý dữ liệu", "Không thể xử lý dữ liệu từ ứng dụng");
+            }
+        }
+
+        // Expose functions to global scope for React Native to call
+        window.receiveDataFromReactNative = receiveDataFromReactNative;
+        window.setArtifactData = receiveDataFromReactNative; // Alias cho dễ sử dụng
+
+        // Lắng nghe message từ React Native WebView
+        window.addEventListener('message', function (event) {
+            try {
+                const message = JSON.parse(event.data);
+                console.log('Received message from React Native:', message);
+
+                if (message.type === 'ARTIFACT_DATA' && message.data) {
+                    receiveDataFromReactNative(message.data);
+                } else if (message.type === 'SET_ARTIFACTS' && message.artifacts) {
+                    receiveDataFromReactNative(message.artifacts);
+                }
+            } catch (error) {
+                console.error('Error parsing message from React Native:', error);
+                // Thử parse trực tiếp nếu không phải JSON
+                if (typeof event.data === 'string') {
+                    try {
+                        const directData = JSON.parse(event.data);
+                        if (Array.isArray(directData)) {
+                            receiveDataFromReactNative(directData);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse direct data:', e);
+                    }
+                }
+            }
+        });
+
+        // Lắng nghe document message (cho React Native)
+        document.addEventListener('message', function (event) {
+            window.dispatchEvent(new MessageEvent('message', { data: event.data }));
+        });
+
+        function getModelDataForTrack(trackIndex) {
+            if (artifactData.length > 0) {
+                const artifact = artifactData[trackIndex % artifactData.length];
+                currentArtifact = artifact;
+                return parseArtifactToModelData(artifact);
+            }
+            return null;
+        }
+
+        async function loadModel(fileLink) {
+            try {
+                if (!fileLink) {
+                    throw new Error("No model URL provided");
+                }
+
+                if (currentModel) {
+                    anchors.forEach(anchor => {
+                        if (anchor && anchor.group) {
+                            anchor.group.remove(currentModel);
+                        }
+                    });
+                    currentModel = null;
+                }
+
+                const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}`;
+
+                return new Promise((resolve, reject) => {
+                    const loader = new GLTFLoader();
+
+                    loader.load(
+                        timestampedUrl,
+                        (gltf) => {
+                            updateProgress(90, "Thiết lập model...");
+
+                            const model = gltf.scene;
+                            const box = new THREE.Box3().setFromObject(model);
+                            const size = box.getSize(new THREE.Vector3());
+                            const maxDimension = Math.max(size.x, size.y, size.z);
+                            const scale = 1.0 / maxDimension;
+
+                            model.scale.setScalar(scale);
+                            const center = box.getCenter(new THREE.Vector3());
+                            model.position.sub(center.multiplyScalar(scale));
+
+                            if (gltf.animations && gltf.animations.length > 0) {
+                                if (mixer) {
+                                    mixer.stopAllAction();
+                                    mixer = null;
+                                }
+
+                                mixer = new THREE.AnimationMixer(model);
+                                gltf.animations.forEach((clip) => {
+                                    const action = mixer.clipAction(clip);
+                                    action.play();
+                                });
+                            }
+
+                            model.traverse((child) => {
+                                if (child.isMesh) {
+                                    child.castShadow = true;
+                                    child.receiveShadow = true;
+                                    if (child.material) child.material.needsUpdate = true;
+                                }
+                            });
+
+                            updateProgress(100, "Hoàn thành!");
+                            resolve(model);
+                        },
+                        (progress) => {
+                            if (progress.lengthComputable) {
+                                const percentComplete = (progress.loaded / progress.total) * 80;
+                                updateProgress(percentComplete, `${Math.round(progress.loaded / 1024)}KB`);
+                            }
+                        },
+                        (error) => {
+                            console.error("Error loading model:", error);
+                            reject(error);
+                        }
+                    );
+                });
+            } catch (error) {
+                console.error("Error loading model:", error);
+                throw error;
+            }
+        }
+
+        function setStatus(type) { elements.statusDot.className = `status-dot ${type}`; }
+
+        function updateProgress(progress, details) {
+            elements.progressFill.style.width = `${progress}%`;
+            elements.progressText.textContent = `${Math.round(progress)}%`;
+            if (details) elements.loadingText.textContent = details;
+        }
+
+        function showError(title, subtitle) {
+            elements.errorMessage.querySelector('div:nth-child(2)').textContent = title;
+            elements.errorMessage.querySelector('div:nth-child(3)').textContent = subtitle;
+            elements.errorMessage.style.display = 'block';
+            elements.retryButton.style.display = 'block';
+            setStatus('error');
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function initAudio(modelData) {
+            if (!modelData.audioUrl) {
+                elements.audioInfo.innerHTML = '<span>❌</span><span>Không có audio</span>';
+                return;
+            }
+
+            audioPlayer = elements.audioPlayer || document.querySelector("#audioPlayer");
+            audioPlayer.src = modelData.audioUrl;
+
+            audioPlayer.addEventListener('loadedmetadata', () => elements.totalTime.textContent = formatTime(audioPlayer.duration));
+            audioPlayer.addEventListener('timeupdate', () => {
+                if (audioPlayer.duration) {
+                    const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                    elements.audioProgressFill.style.width = `${progress}%`;
+                    elements.currentTime.textContent = formatTime(audioPlayer.currentTime);
+                }
+            });
+            audioPlayer.addEventListener('ended', stopAudio);
+            audioPlayer.addEventListener('error', () => elements.audioInfo.innerHTML = '<span>❌</span><span>Không thể tải audio</span>');
+        }
+
+        function playAudio() {
+            if (audioPlayer) {
+                audioPlayer.play().then(() => {
+                    isAudioPlaying = true;
+                    elements.audioButton.className = 'audio-button playing';
+                    elements.audioButton.textContent = '⏸️';
+                    elements.audioControls.style.display = 'block';
+                    const modelData = getModelDataForTrack(currentTrackIndex);
+                    if (modelData) {
+                        elements.audioTitle.textContent = modelData.audioTitle;
+                    }
+                    elements.audioInfo.style.display = 'none';
+                }).catch(console.error);
+            }
+        }
+
+        function pauseAudio() {
+            if (audioPlayer) {
+                audioPlayer.pause();
+                isAudioPlaying = false;
+                elements.audioButton.className = 'audio-button';
+                elements.audioButton.textContent = '▶️';
+            }
+        }
+
+        function stopAudio() {
+            if (audioPlayer) {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+                isAudioPlaying = false;
+                elements.audioButton.className = 'audio-button';
+                elements.audioButton.textContent = '🔊';
+                elements.audioControls.style.display = 'none';
+                elements.audioInfo.style.display = 'flex';
+            }
+        }
+
+        function showModelInfo(data, trackIndex) {
+            elements.modelName.textContent = data.name;
+
+            let description = data.description;
+            if (data.dimensions && (data.dimensions.height || data.dimensions.length || data.dimensions.width)) {
+                description += `\n\nKích thước: ${data.dimensions.length || '?'} x ${data.dimensions.width || '?'} x ${data.dimensions.height || '?'} cm`;
+            }
+            if (data.period) {
+                description += `\nNiên đại: ${data.period}`;
+            }
+            if (data.location) {
+                description += `\nVị trí: ${data.location}`;
+            }
+
+            elements.modelDescription.textContent = description;
+            elements.modelInfo.style.display = 'block';
+
+            if (data.audioUrl) {
+                elements.audioButton.style.display = 'flex';
+                initAudio(data);
+            }
+
+            elements.trackInfo.textContent = `Track ${trackIndex} - ${data.name}`;
+            elements.trackInfo.style.display = 'block';
+        }
+
+        function hideModelInfo() {
+            elements.modelInfo.style.display = 'none';
+            elements.audioButton.style.display = 'none';
+            elements.audioControls.style.display = 'none';
+            elements.trackInfo.style.display = 'none';
+            stopAudio();
+        }
+
+        async function initAR() {
+            try {
+                if (artifactData.length === 0) {
+                    showError("Không có dữ liệu", "Chưa nhận được dữ liệu hiện vật từ ứng dụng");
+                    return;
+                }
+
+                elements.errorMessage.style.display = 'none';
+                elements.retryButton.style.display = 'none';
+                setStatus('loading');
+
+                mindarThree = new MindARThree({
+                    container: document.querySelector("#container"),
+                    imageTargetSrc: "https://fuukyqvnitlhdhwygfcy.supabase.co/storage/v1/object/public/qnail//demo.mind"
+                });
+
+                const { renderer, scene, camera } = mindarThree;
+                const maxTargets = 10;
+
+                for (let i = 0; i < maxTargets; i++) {
+                    try {
+                        const anchor = mindarThree.addAnchor(i);
+                        anchors.push(anchor);
+
+                        anchor.onTargetFound = async () => {
+                            targetFound = true;
+                            currentTrackIndex = i;
+
+                            console.log(`Target ${i} found!`);
+
+                            const modelData = getModelDataForTrack(i);
+                            if (!modelData) {
+                                console.error('No model data available for track', i);
+                                return;
+                            }
+
+                            if (!modelData.modelUrl) {
+                                showError("Không có model 3D", "Hiện vật này chưa có model 3D");
+                                return;
+                            }
+
+                            console.log('Using model data:', modelData);
+
+                            if (!isModelLoaded) {
+                                try {
+                                    elements.loadingOverlay.style.display = 'block';
+                                    updateProgress(0, "Đang tải model...");
+
+                                    const model = await loadModel(modelData.modelUrl);
+                                    if (model) {
+                                        anchor.group.add(model);
+                                        currentModel = model;
+                                        isModelLoaded = true;
+
+                                        setTimeout(() => {
+                                            elements.loadingOverlay.style.display = 'none';
+                                            setStatus('default');
+                                        }, 500);
+                                    }
+                                } catch (error) {
+                                    console.error("Failed to load model:", error);
+                                    elements.loadingOverlay.style.display = 'none';
+                                    showError("Lỗi tải model", "Không thể tải model 3D");
+                                }
+                            } else if (currentModel) {
+                                anchor.group.add(currentModel);
+                            }
+
+                            showModelInfo(modelData, i);
+                        };
+
+                        anchor.onTargetLost = () => {
+                            if (currentTrackIndex === i) {
+                                targetFound = false;
+                                hideModelInfo();
+
+                                if (currentModel) {
+                                    anchor.group.remove(currentModel);
+                                }
+                            }
+                        };
+
+                    } catch (error) {
+                        console.log(`Target ${i} not found in mind file, stopping at ${i} targets`);
+                        break;
+                    }
+                }
+
+                scene.add(new THREE.AmbientLight(0x404040, 0.8));
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                directionalLight.position.set(5, 5, 5);
+                directionalLight.castShadow = true;
+                scene.add(directionalLight);
+                scene.add(new THREE.PointLight(0xffffff, 0.8, 10));
+
+                await mindarThree.start();
+                setStatus('default');
+                isARInitialized = true;
+
+                const clock = new THREE.Clock();
+                renderer.setAnimationLoop(() => {
+                    const delta = clock.getDelta();
+                    if (mixer) mixer.update(delta);
+                    if (currentModel && targetFound) currentModel.rotation.y += 0.005;
+                    renderer.render(scene, camera);
+                });
+
+            } catch (error) {
+                console.error("AR initialization error:", error);
+                showError("Không thể khởi tạo AR", "Vui lòng cho phép truy cập camera");
+            }
+        }
+
+        function cleanup() {
+            if (mindarThree) {
+                mindarThree.stop();
+                mindarThree.renderer.setAnimationLoop(null);
+            }
+            if (mixer) {
+                mixer.stopAllAction();
+                mixer = null;
+            }
+            if (currentModel) {
+                anchors.forEach(anchor => {
+                    if (anchor && anchor.group) {
+                        anchor.group.remove(currentModel);
+                    }
+                });
+                currentModel = null;
+            }
+            stopAudio();
+            isModelLoaded = false;
+            targetFound = false;
+            currentTrackIndex = -1;
+            mindarThree = null;
+            anchors = [];
+            isARInitialized = false;
+        }
+
+        // Event listeners
+        elements.audioButton.addEventListener('click', () => isAudioPlaying ? pauseAudio() : playAudio());
+        elements.audioProgress.addEventListener('click', (e) => {
+            if (audioPlayer && audioPlayer.duration) {
+                const rect = elements.audioProgress.getBoundingClientRect();
+                const percentage = (e.clientX - rect.left) / rect.width;
+                audioPlayer.currentTime = percentage * audioPlayer.duration;
+            }
+        });
+        elements.retryButton.addEventListener('click', () => {
+            cleanup();
+            if (artifactData.length > 0) {
+                initAR();
+            } else {
+                elements.waitingMessage.style.display = 'block';
+                setStatus('waiting');
+            }
+        });
+
+        window.addEventListener('load', () => {
+            console.log('WebView loaded, waiting for data from React Native...');
+
+            // Gửi signal về React Native rằng WebView đã sẵn sàng
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'WEBVIEW_READY',
+                    timestamp: Date.now()
+                }));
+            }
+        });
+        window.addEventListener('beforeunload', cleanup);
+
+        // Debug function để test (có thể xóa khi deploy)
+        window.debugSetData = function (data) {
+            console.log('Debug: Setting artifact data', data);
+            receiveDataFromReactNative(data);
+        };
+    </script>
 </body>
 
 </html>
