@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
     <title>AR Audio Scanner</title>
     <script type="importmap">
     {
@@ -27,41 +28,47 @@
             overflow: hidden;
             height: 100vh;
             width: 100vw;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         #container {
             width: 100vw;
             height: 100vh;
             position: relative;
+            will-change: transform;
         }
 
+        /* Mobile-optimized status indicators */
         .status-dot {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 12px;
-            height: 12px;
+            top: env(safe-area-inset-top, 15px);
+            right: 15px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             background: #4CAF50;
             z-index: 10;
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
             animation: pulse 2s infinite;
         }
 
         .status-dot.loading {
             background: #FFC107;
-            box-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
         }
 
         .status-dot.error {
             background: #f44336;
-            box-shadow: 0 0 10px rgba(244, 67, 54, 0.5);
+            box-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
             animation: none;
         }
 
         .status-dot.waiting {
             background: #9E9E9E;
-            box-shadow: 0 0 10px rgba(158, 158, 158, 0.5);
+            box-shadow: 0 0 8px rgba(158, 158, 158, 0.5);
             animation: none;
         }
 
@@ -73,7 +80,7 @@
 
             50% {
                 opacity: 0.7;
-                transform: scale(1.2);
+                transform: scale(1.1);
             }
 
             100% {
@@ -82,24 +89,26 @@
             }
         }
 
+        /* Mobile-optimized audio button */
         .audio-button {
             position: fixed;
-            top: 20px;
-            left: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 30px;
+            top: env(safe-area-inset-top, 15px);
+            left: 15px;
+            width: 50px;
+            height: 50px;
+            border-radius: 25px;
             background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(10px);
             border: 2px solid rgba(255, 255, 255, 0.2);
             color: white;
-            font-size: 24px;
+            font-size: 20px;
             display: none;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             z-index: 10;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .audio-button.playing {
@@ -112,38 +121,40 @@
 
             0%,
             100% {
-                box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);
+                box-shadow: 0 4px 16px rgba(76, 175, 80, 0.3);
             }
 
             50% {
-                box-shadow: 0 8px 32px rgba(76, 175, 80, 0.6);
+                box-shadow: 0 4px 16px rgba(76, 175, 80, 0.6);
             }
         }
 
+        /* Optimized loading overlay */
         .loading-overlay {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             color: white;
-            padding: 30px;
-            border-radius: 20px;
+            padding: 20px;
+            border-radius: 15px;
             text-align: center;
             z-index: 15;
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: none;
+            max-width: 80vw;
         }
 
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid #4CAF50;
+            width: 30px;
+            height: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid #4CAF50;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+            margin: 0 auto 10px;
         }
 
         @keyframes spin {
@@ -157,11 +168,11 @@
         }
 
         .progress-bar {
-            width: 200px;
-            height: 4px;
+            width: 150px;
+            height: 3px;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 2px;
-            margin: 15px auto 10px;
+            margin: 10px auto 8px;
             overflow: hidden;
         }
 
@@ -169,34 +180,38 @@
             height: 100%;
             background: linear-gradient(90deg, #4CAF50, #45a049);
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.2s ease;
             border-radius: 2px;
         }
 
+        /* Mobile-optimized model info */
         .model-info {
             position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(20px);
-            border-radius: 15px;
-            padding: 15px;
+            bottom: env(safe-area-inset-bottom, 15px);
+            left: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 12px;
             z-index: 8;
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: none;
             color: white;
+            max-height: 30vh;
+            overflow-y: auto;
         }
 
+        /* Mobile-optimized audio controls */
         .audio-controls {
             position: fixed;
-            bottom: 100px;
-            left: 20px;
-            right: 20px;
+            bottom: calc(env(safe-area-inset-bottom, 15px) + 120px);
+            left: 15px;
+            right: 15px;
             background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(20px);
-            border-radius: 15px;
-            padding: 15px;
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 12px;
             z-index: 9;
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: none;
@@ -205,10 +220,10 @@
 
         .audio-progress {
             width: 100%;
-            height: 6px;
+            height: 4px;
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-            margin-bottom: 10px;
+            border-radius: 2px;
+            margin-bottom: 8px;
             overflow: hidden;
             cursor: pointer;
         }
@@ -218,9 +233,10 @@
             background: linear-gradient(90deg, #4CAF50, #45a049);
             width: 0%;
             transition: width 0.1s ease;
-            border-radius: 3px;
+            border-radius: 2px;
         }
 
+        /* Mobile-optimized error message */
         .error-message {
             position: fixed;
             top: 50%;
@@ -228,47 +244,55 @@
             transform: translate(-50%, -50%);
             background: rgba(244, 67, 54, 0.9);
             color: white;
-            padding: 20px 30px;
-            border-radius: 15px;
+            padding: 15px 20px;
+            border-radius: 12px;
             text-align: center;
             z-index: 15;
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(10px);
             display: none;
-            max-width: 90vw;
+            max-width: 85vw;
+            font-size: 14px;
         }
 
         .retry-button {
             position: fixed;
-            bottom: 30px;
+            bottom: calc(env(safe-area-inset-bottom, 15px) + 20px);
             left: 50%;
             transform: translateX(-50%);
             background: rgba(255, 255, 255, 0.9);
             color: #333;
             border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
+            padding: 10px 20px;
+            border-radius: 20px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             z-index: 16;
             display: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
+        /* Compact track info */
         .track-info {
             position: fixed;
-            top: 70px;
-            left: 20px;
+            top: calc(env(safe-area-inset-top, 15px) + 60px);
+            left: 15px;
             background: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 11px;
             z-index: 10;
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: none;
+            max-width: 60vw;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
+        /* Mobile-optimized waiting message */
         .waiting-message {
             position: fixed;
             top: 50%;
@@ -276,77 +300,83 @@
             transform: translate(-50%, -50%);
             background: rgba(0, 0, 0, 0.9);
             color: white;
-            padding: 40px;
-            border-radius: 20px;
+            padding: 25px;
+            border-radius: 15px;
             text-align: center;
             z-index: 15;
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 90vw;
+            max-width: 85vw;
         }
 
         .waiting-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
+            font-size: 36px;
+            margin-bottom: 15px;
             animation: pulse 2s infinite;
         }
 
         .waiting-title {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 600;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .waiting-subtitle {
-            font-size: 14px;
+            font-size: 12px;
             opacity: 0.8;
-            line-height: 1.5;
+            line-height: 1.4;
         }
 
+        /* Compact data status */
         .data-status {
             position: fixed;
-            top: 70px;
-            right: 20px;
+            top: calc(env(safe-area-inset-top, 15px) + 60px);
+            right: 15px;
             background: rgba(158, 158, 158, 0.8);
             color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 11px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 10px;
             z-index: 10;
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 35vw;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        /* Debug Panel Styles */
+        /* Mobile-optimized debug panel */
         .debug-panel {
             position: fixed;
-            top: 120px;
-            left: 20px;
-            width: 300px;
-            max-height: 400px;
-            background: rgba(0, 0, 0, 0.9);
+            top: calc(env(safe-area-inset-top, 15px) + 100px);
+            left: 10px;
+            right: 10px;
+            max-height: 50vh;
+            background: rgba(0, 0, 0, 0.95);
             color: white;
-            border-radius: 10px;
-            padding: 15px;
+            border-radius: 8px;
+            padding: 10px;
             z-index: 12;
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: none;
             overflow-y: auto;
+            font-size: 11px;
         }
 
         .debug-header {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             color: #4CAF50;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            padding-bottom: 5px;
+            padding-bottom: 4px;
         }
 
         .debug-item {
-            margin-bottom: 8px;
-            font-size: 12px;
+            margin-bottom: 6px;
+            font-size: 10px;
         }
 
         .debug-label {
@@ -361,47 +391,83 @@
 
         .debug-toggle {
             position: fixed;
-            top: 120px;
-            right: 20px;
+            top: calc(env(safe-area-inset-top, 15px) + 100px);
+            right: 15px;
             background: rgba(0, 0, 0, 0.8);
             color: white;
             border: none;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 5px;
+            font-size: 10px;
             cursor: pointer;
             z-index: 13;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* Performance Controls */
+        /* Compact performance controls */
         .performance-controls {
             position: fixed;
-            bottom: 200px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.8);
+            bottom: calc(env(safe-area-inset-bottom, 15px) + 180px);
+            left: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
             color: white;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 8px;
+            border-radius: 6px;
             z-index: 11;
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: none;
+            font-size: 11px;
         }
 
         .control-item {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .control-label {
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .control-checkbox {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Performance optimizations */
+        .model-info,
+        .audio-controls,
+        .debug-panel,
+        .performance-controls {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Hide scrollbars on mobile */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        /* Reduce motion for better performance */
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Dark mode optimization */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #000;
+            }
         }
     </style>
 </head>
@@ -410,39 +476,39 @@
     <div class="status-dot waiting" id="statusDot"></div>
     <div class="audio-button" id="audioButton">🔊</div>
     <div class="track-info" id="trackInfo">Scanning...</div>
-    <div class="data-status" id="dataStatus">Waiting for data...</div>
-    <button class="debug-toggle" id="debugToggle">Debug</button>
+    <div class="data-status" id="dataStatus">Waiting...</div>
+    <button class="debug-toggle" id="debugToggle">🔧</button>
     <div id="container"></div>
 
     <!-- Debug Panel -->
     <div class="debug-panel" id="debugPanel">
-        <div class="debug-header">📊 Debug Information</div>
+        <div class="debug-header">📊 Debug Info</div>
         <div id="debugContent">
             <div class="debug-item">
                 <span class="debug-label">Status:</span>
                 <span class="debug-value" id="debugStatus">Waiting...</span>
             </div>
             <div class="debug-item">
-                <span class="debug-label">Artifacts Count:</span>
+                <span class="debug-label">Artifacts:</span>
                 <span class="debug-value" id="debugArtifactCount">0</span>
             </div>
             <div class="debug-item">
-                <span class="debug-label">AR Initialized:</span>
+                <span class="debug-label">AR:</span>
                 <span class="debug-value" id="debugARStatus">No</span>
             </div>
             <div class="debug-item">
-                <span class="debug-label">Current Track:</span>
+                <span class="debug-label">Track:</span>
                 <span class="debug-value" id="debugCurrentTrack">None</span>
             </div>
             <div class="debug-item">
-                <span class="debug-label">Model Loaded:</span>
+                <span class="debug-label">Model:</span>
                 <span class="debug-value" id="debugModelStatus">No</span>
             </div>
             <div class="debug-item">
-                <span class="debug-label">Last Data:</span>
+                <span class="debug-label">Data:</span>
                 <div class="debug-value" id="debugLastData"
-                    style="max-height: 150px; overflow-y: auto; font-size: 10px; margin-top: 5px; background: rgba(255,255,255,0.1); padding: 5px; border-radius: 4px;">
-                    No data received</div>
+                    style="max-height: 100px; overflow-y: auto; font-size: 9px; margin-top: 3px; background: rgba(255,255,255,0.1); padding: 4px; border-radius: 3px;">
+                    No data</div>
             </div>
         </div>
     </div>
@@ -451,31 +517,30 @@
     <div class="performance-controls" id="performanceControls">
         <div class="control-item">
             <input type="checkbox" id="enableRotation" class="control-checkbox">
-            <label for="enableRotation" class="control-label">Enable Model Rotation</label>
+            <label for="enableRotation" class="control-label">Rotation</label>
         </div>
         <div class="control-item">
             <input type="checkbox" id="enableAnimations" class="control-checkbox" checked>
-            <label for="enableAnimations" class="control-label">Enable Animations</label>
+            <label for="enableAnimations" class="control-label">Animations</label>
         </div>
         <div class="control-item">
-            <input type="checkbox" id="showFPS" class="control-checkbox">
-            <label for="showFPS" class="control-label">Show FPS</label>
+            <input type="checkbox" id="lowQuality" class="control-checkbox">
+            <label for="lowQuality" class="control-label">Low Quality</label>
         </div>
     </div>
 
     <!-- Waiting Message -->
     <div class="waiting-message" id="waitingMessage">
         <div class="waiting-icon">📱</div>
-        <div class="waiting-title">Đang chờ dữ liệu từ ứng dụng</div>
+        <div class="waiting-title">Đang chờ dữ liệu</div>
         <div class="waiting-subtitle">
-            Vui lòng đợi ứng dụng React Native gửi dữ liệu hiện vật để bắt đầu quét AR.<br>
-            Ứng dụng sẽ tự động khởi động khi nhận được dữ liệu.
+            Vui lòng đợi ứng dụng gửi dữ liệu hiện vật để bắt đầu quét AR.
         </div>
     </div>
 
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
-        <div id="loadingText">Đang tải model...</div>
+        <div id="loadingText">Đang tải...</div>
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
@@ -487,24 +552,24 @@
         <div class="audio-progress" id="audioProgress">
             <div class="audio-progress-fill" id="audioProgressFill"></div>
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 12px; opacity: 0.8;">
+        <div style="display: flex; justify-content: space-between; font-size: 10px; opacity: 0.8;">
             <span id="currentTime">0:00</span><span id="totalTime">0:00</span>
         </div>
     </div>
 
     <div class="model-info" id="modelInfo">
-        <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;" id="modelName">Model Name</div>
-        <div style="font-size: 14px; opacity: 0.8; line-height: 1.4; margin-bottom: 10px;" id="modelDescription">Model
+        <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;" id="modelName">Model Name</div>
+        <div style="font-size: 12px; opacity: 0.8; line-height: 1.3; margin-bottom: 8px;" id="modelDescription">Model
             description</div>
-        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #4CAF50;" id="audioInfo">
-            <span>🎵</span><span>Nhấn nút audio để nghe giới thiệu</span>
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #4CAF50;" id="audioInfo">
+            <span>🎵</span><span>Nhấn để nghe</span>
         </div>
     </div>
 
     <div class="error-message" id="errorMessage">
-        <div style="font-size: 32px; margin-bottom: 10px;">❌</div>
-        <div style="font-size: 16px; font-weight: 600; margin-bottom: 5px;">Lỗi</div>
-        <div style="font-size: 14px; opacity: 0.9;">Mô tả lỗi</div>
+        <div style="font-size: 24px; margin-bottom: 8px;">❌</div>
+        <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px;">Lỗi</div>
+        <div style="font-size: 12px; opacity: 0.9;">Mô tả lỗi</div>
     </div>
 
     <button class="retry-button" id="retryButton">Thử lại</button>
@@ -515,19 +580,23 @@
         import { MindARThree } from 'mindar-image-three';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+        // Performance-optimized variables
         let mindarThree = null, currentModel = null, mixer = null, isModelLoaded = false, targetFound = false, audioPlayer = null, isAudioPlaying = false;
         let anchors = [];
         let currentTrackIndex = -1;
         let artifactData = [];
         let currentArtifact = null;
         let isARInitialized = false;
+        let loadingTimeout = null;
+        let modelCache = new Map();
 
         // Performance settings
         let enableRotation = false;
         let enableAnimations = true;
-        let showFPS = false;
+        let lowQuality = false;
         let fpsCounter = 0;
         let lastTime = performance.now();
+        let frameSkip = 0;
 
         const elements = {
             statusDot: document.querySelector("#statusDot"),
@@ -556,25 +625,29 @@
             performanceControls: document.querySelector("#performanceControls"),
             enableRotation: document.querySelector("#enableRotation"),
             enableAnimations: document.querySelector("#enableAnimations"),
-            showFPS: document.querySelector("#showFPS")
+            lowQuality: document.querySelector("#lowQuality")
         };
 
-        // Debug functions
+        // Debounced update function for better performance
+        let updateDebugTimeout = null;
         function updateDebugInfo() {
-            document.querySelector("#debugStatus").textContent = isARInitialized ? "AR Running" : "Waiting";
-            document.querySelector("#debugArtifactCount").textContent = artifactData.length;
-            document.querySelector("#debugARStatus").textContent = isARInitialized ? "Yes" : "No";
-            document.querySelector("#debugCurrentTrack").textContent = currentTrackIndex >= 0 ? `Track ${currentTrackIndex}` : "None";
-            document.querySelector("#debugModelStatus").textContent = isModelLoaded ? "Yes" : "No";
+            if (updateDebugTimeout) clearTimeout(updateDebugTimeout);
+            updateDebugTimeout = setTimeout(() => {
+                document.querySelector("#debugStatus").textContent = isARInitialized ? "AR Running" : "Waiting";
+                document.querySelector("#debugArtifactCount").textContent = artifactData.length;
+                document.querySelector("#debugARStatus").textContent = isARInitialized ? "Yes" : "No";
+                document.querySelector("#debugCurrentTrack").textContent = currentTrackIndex >= 0 ? `Track ${currentTrackIndex}` : "None";
+                document.querySelector("#debugModelStatus").textContent = isModelLoaded ? "Yes" : "No";
+            }, 100);
         }
 
         function showLastData(data) {
             const debugLastData = document.querySelector("#debugLastData");
             if (data && data.length > 0) {
-                const summary = data.map((item, index) =>
-                    `${index + 1}. ${item.tenHienVat3D || 'Unknown'}\n   Model: ${item.model3dPcGlb ? 'Yes' : 'No'}\n   Audio: ${item.audio ? 'Yes' : 'No'}`
+                const summary = data.slice(0, 3).map((item, index) =>
+                    `${index + 1}. ${(item.tenHienVat3D || 'Unknown').substring(0, 20)}...\n   Model: ${item.model3dPcGlb ? 'Yes' : 'No'}`
                 ).join('\n\n');
-                debugLastData.textContent = summary;
+                debugLastData.textContent = summary + (data.length > 3 ? `\n... +${data.length - 3} more` : '');
             } else {
                 debugLastData.textContent = "No valid data";
             }
@@ -595,16 +668,15 @@
         elements.enableAnimations.addEventListener('change', (e) => {
             enableAnimations = e.target.checked;
             if (mixer) {
-                if (enableAnimations) {
-                    mixer.timeScale = 1;
-                } else {
-                    mixer.timeScale = 0;
-                }
+                mixer.timeScale = enableAnimations ? 1 : 0;
             }
         });
 
-        elements.showFPS.addEventListener('change', (e) => {
-            showFPS = e.target.checked;
+        elements.lowQuality.addEventListener('change', (e) => {
+            lowQuality = e.target.checked;
+            if (mindarThree && mindarThree.renderer) {
+                mindarThree.renderer.setPixelRatio(lowQuality ? 0.5 : window.devicePixelRatio);
+            }
         });
 
         function parseArtifactToModelData(artifact) {
@@ -641,15 +713,13 @@
 
                 if (Array.isArray(data) && data.length > 0) {
                     artifactData = data;
-                    elements.dataStatus.textContent = `Loaded ${data.length} artifacts`;
+                    elements.dataStatus.textContent = `${data.length} items`;
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
 
-                    // Update debug panel
                     showLastData(data);
                     updateDebugInfo();
 
-                    // Send confirmation back to React Native
                     if (window.ReactNativeWebView) {
                         window.ReactNativeWebView.postMessage(JSON.stringify({
                             type: 'DATA_RECEIVED',
@@ -657,48 +727,35 @@
                         }));
                     }
 
-                    data.forEach((artifact, index) => {
-                        console.log(`Artifact ${index}:`, {
-                            name: artifact.tenHienVat3D,
-                            model3dPcGlb: artifact.model3dPcGlb,
-                            audio: artifact.audio
-                        });
-                    });
-
                     if (!isARInitialized) {
                         initAR();
                     }
                 } else {
                     console.warn('Invalid data received from React Native');
-                    elements.dataStatus.textContent = 'Invalid data received';
+                    elements.dataStatus.textContent = 'Invalid data';
                     elements.dataStatus.style.background = 'rgba(255, 193, 7, 0.8)';
-                    showError("Dữ liệu không hợp lệ", "Dữ liệu nhận được từ ứng dụng không đúng định dạng");
+                    showError("Dữ liệu không hợp lệ", "Dữ liệu nhận được không đúng định dạng");
                 }
             } catch (error) {
                 console.error('Error processing data from React Native:', error);
-                elements.dataStatus.textContent = 'Error processing data';
+                elements.dataStatus.textContent = 'Error';
                 elements.dataStatus.style.background = 'rgba(244, 67, 54, 0.8)';
                 showError("Lỗi xử lý dữ liệu", "Không thể xử lý dữ liệu từ ứng dụng");
             }
         }
 
-        // Expose functions to global scope for React Native to call
         window.receiveDataFromReactNative = receiveDataFromReactNative;
         window.setArtifactData = receiveDataFromReactNative;
 
-        // Listen for messages from React Native WebView
         window.addEventListener('message', function (event) {
             try {
                 const message = JSON.parse(event.data);
-                console.log('Received message from React Native:', message);
-
                 if (message.type === 'ARTIFACT_DATA' && message.data) {
                     receiveDataFromReactNative(message.data);
                 } else if (message.type === 'SET_ARTIFACTS' && message.artifacts) {
                     receiveDataFromReactNative(message.artifacts);
                 }
             } catch (error) {
-                console.error('Error parsing message from React Native:', error);
                 if (typeof event.data === 'string') {
                     try {
                         const directData = JSON.parse(event.data);
@@ -725,12 +782,20 @@
             return null;
         }
 
+        // Optimized model loading with timeout and caching
         async function loadModel(fileLink) {
             try {
                 if (!fileLink) {
                     throw new Error("No model URL provided");
                 }
 
+                // Check cache first
+                if (modelCache.has(fileLink)) {
+                    console.log('Loading model from cache');
+                    return modelCache.get(fileLink).clone();
+                }
+
+                // Clear existing model
                 if (currentModel) {
                     anchors.forEach(anchor => {
                         if (anchor && anchor.group) {
@@ -743,14 +808,22 @@
                 const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}`;
 
                 return new Promise((resolve, reject) => {
+                    // Set loading timeout
+                    loadingTimeout = setTimeout(() => {
+                        reject(new Error("Model loading timeout"));
+                    }, 15000); // 15 second timeout
+
                     const loader = new GLTFLoader();
 
                     loader.load(
                         timestampedUrl,
                         (gltf) => {
-                            updateProgress(90, "Thiết lập model...");
+                            clearTimeout(loadingTimeout);
+                            updateProgress(90, "Thiết lập...");
 
                             const model = gltf.scene;
+
+                            // Optimize model for mobile
                             const box = new THREE.Box3().setFromObject(model);
                             const size = box.getSize(new THREE.Vector3());
                             const maxDimension = Math.max(size.x, size.y, size.z);
@@ -760,7 +833,23 @@
                             const center = box.getCenter(new THREE.Vector3());
                             model.position.sub(center.multiplyScalar(scale));
 
-                            // Animation setup with performance control
+                            // Optimize materials for performance
+                            model.traverse((child) => {
+                                if (child.isMesh) {
+                                    if (lowQuality) {
+                                        // Reduce quality for better performance
+                                        if (child.material.map) {
+                                            child.material.map.minFilter = THREE.LinearFilter;
+                                            child.material.map.magFilter = THREE.LinearFilter;
+                                        }
+                                    }
+                                    child.castShadow = false; // Disable shadows for better performance
+                                    child.receiveShadow = false;
+                                    if (child.material) child.material.needsUpdate = true;
+                                }
+                            });
+
+                            // Animation setup
                             if (gltf.animations && gltf.animations.length > 0 && enableAnimations) {
                                 if (mixer) {
                                     mixer.stopAllAction();
@@ -774,13 +863,8 @@
                                 });
                             }
 
-                            model.traverse((child) => {
-                                if (child.isMesh) {
-                                    child.castShadow = true;
-                                    child.receiveShadow = true;
-                                    if (child.material) child.material.needsUpdate = true;
-                                }
-                            });
+                            // Cache the model
+                            modelCache.set(fileLink, model.clone());
 
                             updateProgress(100, "Hoàn thành!");
                             resolve(model);
@@ -792,12 +876,14 @@
                             }
                         },
                         (error) => {
+                            clearTimeout(loadingTimeout);
                             console.error("Error loading model:", error);
                             reject(error);
                         }
                     );
                 });
             } catch (error) {
+                if (loadingTimeout) clearTimeout(loadingTimeout);
                 console.error("Error loading model:", error);
                 throw error;
             }
@@ -820,6 +906,12 @@
             elements.errorMessage.style.display = 'block';
             elements.retryButton.style.display = 'block';
             setStatus('error');
+
+            // Auto hide error after 5 seconds
+            setTimeout(() => {
+                elements.errorMessage.style.display = 'none';
+                elements.retryButton.style.display = 'none';
+            }, 5000);
         }
 
         function formatTime(seconds) {
@@ -846,7 +938,7 @@
                 }
             });
             audioPlayer.addEventListener('ended', stopAudio);
-            audioPlayer.addEventListener('error', () => elements.audioInfo.innerHTML = '<span>❌</span><span>Không thể tải audio</span>');
+            audioPlayer.addEventListener('error', () => elements.audioInfo.innerHTML = '<span>❌</span><span>Lỗi audio</span>');
         }
 
         function playAudio() {
@@ -890,14 +982,8 @@
             elements.modelName.textContent = data.name;
 
             let description = data.description;
-            if (data.dimensions && (data.dimensions.height || data.dimensions.length || data.dimensions.width)) {
-                description += `\n\nKích thước: ${data.dimensions.length || '?'} x ${data.dimensions.width || '?'} x ${data.dimensions.height || '?'} cm`;
-            }
-            if (data.period) {
-                description += `\nNiên đại: ${data.period}`;
-            }
-            if (data.location) {
-                description += `\nVị trí: ${data.location}`;
+            if (description.length > 100) {
+                description = description.substring(0, 100) + '...';
             }
 
             elements.modelDescription.textContent = description;
@@ -908,7 +994,7 @@
                 initAudio(data);
             }
 
-            elements.trackInfo.textContent = `Track ${trackIndex} - ${data.name}`;
+            elements.trackInfo.textContent = `Track ${trackIndex}`;
             elements.trackInfo.style.display = 'block';
 
             updateDebugInfo();
@@ -926,7 +1012,7 @@
         async function initAR() {
             try {
                 if (artifactData.length === 0) {
-                    showError("Không có dữ liệu", "Chưa nhận được dữ liệu hiện vật từ ứng dụng");
+                    showError("Không có dữ liệu", "Chưa nhận được dữ liệu hiện vật");
                     return;
                 }
 
@@ -940,7 +1026,12 @@
                 });
 
                 const { renderer, scene, camera } = mindarThree;
-                const maxTargets = 10;
+
+                // Optimize renderer for mobile
+                renderer.setPixelRatio(lowQuality ? 0.5 : Math.min(window.devicePixelRatio, 2));
+                renderer.shadowMap.enabled = false; // Disable shadows for better performance
+
+                const maxTargets = Math.min(5, artifactData.length); // Limit targets for better performance
 
                 for (let i = 0; i < maxTargets; i++) {
                     try {
@@ -951,20 +1042,11 @@
                             targetFound = true;
                             currentTrackIndex = i;
 
-                            console.log(`Target ${i} found!`);
-
                             const modelData = getModelDataForTrack(i);
-                            if (!modelData) {
-                                console.error('No model data available for track', i);
-                                return;
-                            }
-
-                            if (!modelData.modelUrl) {
+                            if (!modelData || !modelData.modelUrl) {
                                 showError("Không có model 3D", "Hiện vật này chưa có model 3D");
                                 return;
                             }
-
-                            console.log('Using model data:', modelData);
 
                             if (!isModelLoaded) {
                                 try {
@@ -980,7 +1062,7 @@
                                         setTimeout(() => {
                                             elements.loadingOverlay.style.display = 'none';
                                             setStatus('default');
-                                        }, 500);
+                                        }, 300);
                                     }
                                 } catch (error) {
                                     console.error("Failed to load model:", error);
@@ -1006,17 +1088,16 @@
                         };
 
                     } catch (error) {
-                        console.log(`Target ${i} not found in mind file, stopping at ${i} targets`);
+                        console.log(`Target ${i} not found, stopping at ${i} targets`);
                         break;
                     }
                 }
 
-                scene.add(new THREE.AmbientLight(0x404040, 0.8));
-                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                // Optimized lighting
+                scene.add(new THREE.AmbientLight(0x404040, 1.0));
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
                 directionalLight.position.set(5, 5, 5);
-                directionalLight.castShadow = true;
                 scene.add(directionalLight);
-                scene.add(new THREE.PointLight(0xffffff, 0.8, 10));
 
                 await mindarThree.start();
                 setStatus('default');
@@ -1025,27 +1106,20 @@
 
                 const clock = new THREE.Clock();
                 renderer.setAnimationLoop(() => {
+                    // Frame skipping for better performance on low-end devices
+                    frameSkip++;
+                    if (lowQuality && frameSkip % 2 === 0) return;
+
                     const delta = clock.getDelta();
 
-                    // FPS Counter
-                    if (showFPS) {
-                        fpsCounter++;
-                        const currentTime = performance.now();
-                        if (currentTime - lastTime >= 1000) {
-                            console.log(`FPS: ${fpsCounter}`);
-                            fpsCounter = 0;
-                            lastTime = currentTime;
-                        }
-                    }
-
-                    // Animation update (only if enabled)
-                    if (mixer && enableAnimations) {
+                    // Animation update (throttled)
+                    if (mixer && enableAnimations && frameSkip % 2 === 0) {
                         mixer.update(delta);
                     }
 
-                    // Model rotation (only if enabled and target found)
-                    if (currentModel && targetFound && enableRotation) {
-                        currentModel.rotation.y += 0.005;
+                    // Model rotation (throttled)
+                    if (currentModel && targetFound && enableRotation && frameSkip % 3 === 0) {
+                        currentModel.rotation.y += 0.01;
                     }
 
                     renderer.render(scene, camera);
@@ -1058,6 +1132,11 @@
         }
 
         function cleanup() {
+            if (loadingTimeout) {
+                clearTimeout(loadingTimeout);
+                loadingTimeout = null;
+            }
+
             if (mindarThree) {
                 mindarThree.stop();
                 mindarThree.renderer.setAnimationLoop(null);
@@ -1081,10 +1160,11 @@
             mindarThree = null;
             anchors = [];
             isARInitialized = false;
+            frameSkip = 0;
             updateDebugInfo();
         }
 
-        // Event listeners
+        // Event listeners with touch optimization
         elements.audioButton.addEventListener('click', () => isAudioPlaying ? pauseAudio() : playAudio());
         elements.audioProgress.addEventListener('click', (e) => {
             if (audioPlayer && audioPlayer.duration) {
@@ -1103,6 +1183,16 @@
             }
         });
 
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
         window.addEventListener('load', () => {
             console.log('WebView loaded, waiting for data from React Native...');
 
@@ -1113,7 +1203,19 @@
                 }));
             }
         });
+
         window.addEventListener('beforeunload', cleanup);
+
+        // Memory cleanup on visibility change
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Pause animations when app goes to background
+                if (mixer) mixer.timeScale = 0;
+            } else {
+                // Resume animations when app comes to foreground
+                if (mixer && enableAnimations) mixer.timeScale = 1;
+            }
+        });
 
         window.debugSetData = function (data) {
             console.log('Debug: Setting artifact data', data);
