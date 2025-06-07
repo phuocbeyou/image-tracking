@@ -432,7 +432,6 @@
     <div class="audio-button" id="audioButton">🔊</div>
     <div class="track-info" id="trackInfo">Scanning...</div>
     <div class="data-status" id="dataStatus">Waiting...</div>
-    <div class="rotation-indicator" id="rotationIndicator">🔄 Auto Rotate</div>
     <div id="container"></div>
 
     <!-- Waiting Message -->
@@ -784,7 +783,7 @@
 
                 if (Array.isArray(data) && data.length > 0) {
                     artifactData = data;
-                    elements.dataStatus.textContent = `${data.length} items`;
+                    // elements.dataStatus.textContent = `${data.length} items`;
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
 
@@ -1222,7 +1221,7 @@
 
                 mindarThree = new MindARThree({
                     container: document.querySelector("#container"),
-                    imageTargetSrc: "https://fuukyqvnitlhdhwygfcy.supabase.co/storage/v1/object/public/qnail//demo.mind"
+                    imageTargetSrc: "https://u2502-dev.dttt.vn/gwdevv5/file/v5/FileObject/public/09630b2d-9b37-4d34-8e7b-b9989c1d5bb5/download"
                 });
 
                 const { renderer, scene, camera } = mindarThree;
