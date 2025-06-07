@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
-    <title>AR Audio Scanner - Fixed</title>
+    <title>AR Audio Scanner - Single Load</title>
     <script type="importmap">
   {
     "imports": {
@@ -529,6 +529,10 @@
                 <span class="debug-value" id="debugLoadStatus">None</span>
             </div>
             <div class="debug-item">
+                <span class="debug-label">Queue:</span>
+                <span class="debug-value" id="debugQueue">Empty</span>
+            </div>
+            <div class="debug-item">
                 <span class="debug-label">Data:</span>
                 <div class="debug-value" id="debugLastData"
                     style="max-height: 100px; overflow-y: auto; font-size: 9px; margin-top: 3px; background: rgba(255,255,255,0.1); padding: 4px; border-radius: 3px;">
@@ -627,7 +631,7 @@
         let enableRotation = true;
         let enableAnimations = true;
         let lowQuality = false;
-        let skipValidation = false; // New option to skip URL validation
+        let skipValidation = false;
         let fpsCounter = 0;
         let lastTime = performance.now();
         let frameSkip = 0;
@@ -650,6 +654,11 @@
         // Debug variables
         let lastAttemptedUrl = '';
         let lastLoadStatus = '';
+
+        // Single model loading system
+        let isCurrentlyLoading = false;
+        let modelLoadQueue = [];
+        let currentLoadingModelIndex = -1;
 
         const elements = {
             statusDot: document.querySelector("#statusDot"),
@@ -716,14 +725,13 @@
             }
         }
 
-        // FIXED: More lenient URL validation
+        // More lenient URL validation
         async function validateModelUrl(url) {
             if (!url || skipValidation) {
                 console.log('Skipping URL validation');
-                return true; // Skip validation if disabled
+                return true;
             }
 
-            // Check cache first
             if (urlValidationCache.has(url)) {
                 const result = urlValidationCache.get(url);
                 console.log(`URL validation from cache: ${url} -> ${result}`);
@@ -733,20 +741,18 @@
             try {
                 console.log(`Validating URL: ${url}`);
 
-                // More lenient validation - just check if URL is reachable
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000); // Increased timeout
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
 
                 const response = await fetch(url, {
                     method: 'HEAD',
                     signal: controller.signal,
-                    mode: 'no-cors' // Allow cross-origin requests
+                    mode: 'no-cors'
                 });
 
                 clearTimeout(timeoutId);
 
-                // More lenient check - accept any response that doesn't error
-                const isValid = true; // Always return true for HEAD requests with no-cors
+                const isValid = true;
                 urlValidationCache.set(url, isValid);
 
                 console.log(`URL validation result: ${url} -> ${isValid}`);
@@ -754,8 +760,7 @@
 
             } catch (error) {
                 console.log(`URL validation failed for ${url}, but proceeding anyway:`, error.message);
-                // Don't cache failed validations, and return true to proceed
-                return true; // Proceed even if validation fails
+                return true;
             }
         }
 
@@ -793,6 +798,8 @@
                 document.querySelector("#debugFPS").textContent = fpsCounter;
                 document.querySelector("#debugLastUrl").textContent = lastAttemptedUrl || "None";
                 document.querySelector("#debugLoadStatus").textContent = lastLoadStatus || "None";
+                document.querySelector("#debugQueue").textContent = modelLoadQueue.length > 0 ?
+                    `${modelLoadQueue.length} items (${modelLoadQueue.join(', ')})` : "Empty";
             }, 100);
         }
 
@@ -939,6 +946,11 @@
             activeModels.clear();
             loadingPromises.clear();
 
+            // Clear model loading queue
+            modelLoadQueue = [];
+            isCurrentlyLoading = false;
+            currentLoadingModelIndex = -1;
+
             currentTrackIndex = -1;
             currentArtifact = null;
             targetFound = false;
@@ -990,7 +1002,98 @@
             return null;
         }
 
-        // FIXED: Enhanced model loading with better error handling and logging
+        // Process model queue
+        function processModelQueue() {
+            if (modelLoadQueue.length === 0 || isCurrentlyLoading) {
+                return;
+            }
+
+            isCurrentlyLoading = true;
+            const nextModelIndex = modelLoadQueue.shift();
+            currentLoadingModelIndex = nextModelIndex;
+            updateDebugInfo();
+
+            console.log(`📋 Processing queue: Loading model ${nextModelIndex} (${modelLoadQueue.length} remaining in queue)`);
+
+            // Get model data
+            const modelData = getModelDataForTrack(nextModelIndex);
+            if (!modelData || !modelData.modelUrl) {
+                console.warn(`❌ No model data or URL for index ${nextModelIndex}`);
+                isCurrentlyLoading = false;
+                currentLoadingModelIndex = -1;
+                processModelQueue(); // Process next in queue
+                return;
+            }
+
+            // Check if model already exists
+            if (activeModels.has(nextModelIndex)) {
+                console.log(`♻️ Model ${nextModelIndex} already loaded, skipping`);
+                isCurrentlyLoading = false;
+                currentLoadingModelIndex = -1;
+                processModelQueue(); // Process next in queue
+                return;
+            }
+
+            // Load the model
+            loadModel(modelData.modelUrl, nextModelIndex)
+                .then(model => {
+                    if (model) {
+                        console.log(`✅ Model ${nextModelIndex} loaded successfully from queue`);
+                        activeModels.set(nextModelIndex, model);
+
+                        // If this is the current track, add it to the scene
+                        if (nextModelIndex === currentTrackIndex && targetFound) {
+                            const anchor = anchors[nextModelIndex];
+                            if (anchor && anchor.group) {
+                                anchor.group.add(model);
+                                isModelLoaded = true;
+                                console.log(`✅ Added model ${nextModelIndex} to scene`);
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error(`❌ Error loading model ${nextModelIndex} from queue:`, error);
+                })
+                .finally(() => {
+                    // Reset loading state and process next in queue
+                    isCurrentlyLoading = false;
+                    currentLoadingModelIndex = -1;
+                    elements.loadingOverlay.style.display = 'none';
+                    updateDebugInfo();
+
+                    // Process next model in queue after a short delay
+                    setTimeout(() => {
+                        processModelQueue();
+                    }, 500);
+                });
+        }
+
+        // Queue model for loading
+        function queueModelForLoading(modelIndex) {
+            // Don't queue if already in queue or currently loading
+            if (modelLoadQueue.includes(modelIndex) || currentLoadingModelIndex === modelIndex) {
+                console.log(`⏭️ Model ${modelIndex} already in queue or loading, skipping`);
+                return;
+            }
+
+            // Don't queue if already loaded
+            if (activeModels.has(modelIndex)) {
+                console.log(`♻️ Model ${modelIndex} already loaded, skipping queue`);
+                return;
+            }
+
+            console.log(`➕ Adding model ${modelIndex} to loading queue`);
+            modelLoadQueue.push(modelIndex);
+            updateDebugInfo();
+
+            // Start processing queue if not already processing
+            if (!isCurrentlyLoading) {
+                processModelQueue();
+            }
+        }
+
+        // Enhanced model loading with single load at a time
         async function loadModel(fileLink, modelIndex) {
             lastAttemptedUrl = fileLink;
             lastLoadStatus = 'Starting...';
@@ -1008,6 +1111,10 @@
                 lastLoadStatus = 'Validating URL...';
                 updateDebugInfo();
 
+                // Show loading overlay
+                elements.loadingOverlay.style.display = 'block';
+                updateProgress(0, `Đang tải model ${modelIndex}...`);
+
                 // URL validation (can be skipped)
                 if (!skipValidation) {
                     const isValidUrl = await validateModelUrl(fileLink);
@@ -1015,17 +1122,7 @@
                         lastLoadStatus = 'URL validation failed';
                         console.warn(`URL validation failed for index ${modelIndex}: ${fileLink}`);
                         updateDebugInfo();
-                        // Don't return null, proceed anyway
                     }
-                }
-
-                // Check if already loading
-                const loadingKey = `${fileLink}_${modelIndex}`;
-                if (loadingPromises.has(loadingKey)) {
-                    lastLoadStatus = 'Already loading...';
-                    console.log(`Model ${modelIndex} already loading, waiting...`);
-                    updateDebugInfo();
-                    return await loadingPromises.get(loadingKey);
                 }
 
                 // Check cache first
@@ -1035,6 +1132,7 @@
                     console.log(`✅ Loading model ${modelIndex} from cache`);
                     const cachedModel = modelCache.get(cacheKey);
                     cachedModel.userData.lastUsed = Date.now();
+                    updateProgress(100, "Loaded from cache");
                     updateDebugInfo();
                     return cachedModel.clone();
                 }
@@ -1046,16 +1144,18 @@
                 const timestampedUrl = `${fileLink.split("?")[0]}?t=${new Date().getTime()}`;
                 console.log(`📥 Loading model from: ${timestampedUrl}`);
 
-                const loadingPromise = new Promise((resolve, reject) => {
-                    // Set loading timeout - increased to 20 seconds
-                    loadingTimeout = setTimeout(() => {
-                        lastLoadStatus = 'Timeout';
-                        updateDebugInfo();
-                        reject(new Error("Model loading timeout"));
-                    }, 20000);
+                // Set loading timeout - increased to 20 seconds
+                if (loadingTimeout) clearTimeout(loadingTimeout);
+                loadingTimeout = setTimeout(() => {
+                    lastLoadStatus = 'Timeout';
+                    updateDebugInfo();
+                    elements.loadingOverlay.style.display = 'none';
+                    console.error(`❌ Model loading timeout for index ${modelIndex}`);
+                }, 20000);
 
-                    const loader = new GLTFLoader();
+                const loader = new GLTFLoader();
 
+                return new Promise((resolve, reject) => {
                     loader.load(
                         timestampedUrl,
                         (gltf) => {
@@ -1167,13 +1267,6 @@
                         }
                     );
                 });
-
-                // Store the loading promise
-                loadingPromises.set(loadingKey, loadingPromise);
-
-                const result = await loadingPromise;
-                loadingPromises.delete(loadingKey);
-                return result;
 
             } catch (error) {
                 if (loadingTimeout) clearTimeout(loadingTimeout);
@@ -1380,14 +1473,15 @@
                                 return;
                             }
 
+                            // Show model info regardless of model loading
+                            showModelInfo(modelData, i);
+
                             if (!modelData.modelUrl) {
                                 console.warn(`❌ No model URL for index ${i}`);
-                                showModelInfo(modelData, i); // Still show info even without model
                                 return;
                             }
 
-                            console.log(`📦 Loading model for index ${i}: ${modelData.name}`);
-                            console.log(`🔗 Model URL: ${modelData.modelUrl}`);
+                            console.log(`📦 Checking model for index ${i}: ${modelData.name}`);
 
                             // Check if model already exists for this index
                             if (activeModels.has(i)) {
@@ -1395,38 +1489,10 @@
                                 anchor.group.add(existingModel);
                                 console.log(`♻️ Reusing existing model for index ${i}`);
                                 isModelLoaded = true;
-                                showModelInfo(modelData, i);
                             } else {
-                                try {
-                                    elements.loadingOverlay.style.display = 'block';
-                                    updateProgress(0, `Đang tải model ${i}...`);
-
-                                    const model = await loadModel(modelData.modelUrl, i);
-
-                                    if (!model) {
-                                        console.warn(`⚠️ Failed to load model for index ${i}, but showing info anyway`);
-                                        elements.loadingOverlay.style.display = 'none';
-                                        showModelInfo(modelData, i); // Show info even if model fails
-                                        return;
-                                    }
-
-                                    console.log(`✅ Adding model ${i} to scene`);
-                                    anchor.group.add(model);
-                                    activeModels.set(i, model);
-                                    isModelLoaded = true;
-
-                                    setTimeout(() => {
-                                        elements.loadingOverlay.style.display = 'none';
-                                        setStatus('default');
-                                    }, 300);
-
-                                    showModelInfo(modelData, i);
-
-                                } catch (error) {
-                                    console.error(`❌ Failed to load model for index ${i}:`, error);
-                                    elements.loadingOverlay.style.display = 'none';
-                                    showModelInfo(modelData, i); // Show info even if model fails
-                                }
+                                // Queue model for loading
+                                console.log(`🔄 Queueing model ${i} for loading`);
+                                queueModelForLoading(i);
                             }
                         };
 
@@ -1555,6 +1621,11 @@
             loadingPromises.clear();
             urlValidationCache.clear();
 
+            // Clear model loading queue
+            modelLoadQueue = [];
+            isCurrentlyLoading = false;
+            currentLoadingModelIndex = -1;
+
             stopAudio();
             isModelLoaded = false;
             targetFound = false;
@@ -1657,11 +1728,7 @@
             if (artifactData[index]) {
                 const modelData = parseArtifactToModelData(artifactData[index], index);
                 if (modelData.modelUrl) {
-                    loadModel(modelData.modelUrl, index).then(model => {
-                        console.log(`✅ Debug load complete for index ${index}:`, model);
-                    }).catch(error => {
-                        console.error(`❌ Debug load failed for index ${index}:`, error);
-                    });
+                    queueModelForLoading(index);
                 }
             }
         };
@@ -1674,6 +1741,15 @@
             console.log('✅ All caches cleared');
         };
 
+        window.debugClearQueue = function () {
+            console.log('🔧 Debug: Clearing model queue');
+            modelLoadQueue = [];
+            isCurrentlyLoading = false;
+            currentLoadingModelIndex = -1;
+            updateDebugInfo();
+            console.log('✅ Queue cleared');
+        };
+
         window.debugShowInfo = function () {
             console.log('🔧 Debug Info:', {
                 artifactCount: artifactData.length,
@@ -1683,7 +1759,20 @@
                 isARInitialized,
                 memoryUsage: getMemoryUsage(),
                 lastUrl: lastAttemptedUrl,
-                lastStatus: lastLoadStatus
+                lastStatus: lastLoadStatus,
+                isCurrentlyLoading,
+                currentLoadingModel: currentLoadingModelIndex,
+                queueLength: modelLoadQueue.length,
+                queue: modelLoadQueue
+            });
+        };
+
+        window.debugShowQueue = function () {
+            console.log('🔧 Current Queue:', {
+                isLoading: isCurrentlyLoading,
+                currentModel: currentLoadingModelIndex,
+                queue: modelLoadQueue,
+                queueLength: modelLoadQueue.length
             });
         };
 
