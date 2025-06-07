@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>AR Audio Scanner</title>
+    <title>AR Cultural Heritage Viewer</title>
     <script type="importmap">
     {
       "imports": {
@@ -142,7 +142,7 @@
             z-index: 15;
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            display: none;
+            display: block;
         }
 
         .spinner {
@@ -206,6 +206,8 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             display: none;
             color: white;
+            max-height: 200px;
+            overflow-y: auto;
         }
 
         .model-name {
@@ -218,6 +220,12 @@
             font-size: 14px;
             opacity: 0.8;
             line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .model-details {
+            font-size: 12px;
+            opacity: 0.7;
             margin-bottom: 10px;
         }
 
@@ -337,6 +345,22 @@
         .retry-button:active {
             transform: translateX(-50%) scale(0.95);
         }
+
+        /* Waiting for data message */
+        .waiting-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 15;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 
@@ -353,7 +377,7 @@
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
-        <div class="loading-text" id="loadingText">Đang tải model...</div>
+        <div class="loading-text" id="loadingText">Đang chờ dữ liệu từ ứng dụng...</div>
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
@@ -376,6 +400,7 @@
     <div class="model-info" id="modelInfo">
         <div class="model-name" id="modelName">Model Name</div>
         <div class="model-description" id="modelDescription">Model description</div>
+        <div class="model-details" id="modelDetails"></div>
         <div class="audio-info" id="audioInfo">
             <span>🎵</span>
             <span>Nhấn nút audio để nghe giới thiệu</span>
@@ -407,6 +432,7 @@
         let targetFound = false;
         let audioPlayer = null;
         let isAudioPlaying = false;
+        let artifactData = null;
 
         const statusDot = document.querySelector("#statusDot");
         const audioButton = document.querySelector("#audioButton");
@@ -417,6 +443,7 @@
         const modelInfo = document.querySelector("#modelInfo");
         const modelName = document.querySelector("#modelName");
         const modelDescription = document.querySelector("#modelDescription");
+        const modelDetails = document.querySelector("#modelDetails");
         const audioInfo = document.querySelector("#audioInfo");
         const audioControls = document.querySelector("#audioControls");
         const audioTitle = document.querySelector("#audioTitle");
@@ -426,16 +453,6 @@
         const totalTime = document.querySelector("#totalTime");
         const errorMessage = document.querySelector("#errorMessage");
         const retryButton = document.querySelector("#retryButton");
-
-        // Auto-selected model with audio
-        const modelData = {
-            targetIndex: 0,
-            name: "AR Audio Experience",
-            description: "Model 3D với âm thanh giới thiệu",
-            modelUrl: "https://threejs.org/examples/models/gltf/Flamingo.glb",
-            audioUrl: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav", // Sample audio
-            audioTitle: "Giới thiệu sản phẩm"
-        };
 
         function setStatus(type) {
             statusDot.className = `status-dot ${type}`;
@@ -468,9 +485,23 @@
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
-        function initAudio() {
+        // Extract URLs from comma-separated string
+        function extractUrls(urlString) {
+            if (!urlString) return [];
+            return urlString.split(',').map(url => url.trim()).filter(url => url.length > 0);
+        }
+
+        // Get first valid URL from comma-separated string
+        function getFirstUrl(urlString) {
+            const urls = extractUrls(urlString);
+            return urls.length > 0 ? urls[0] : null;
+        }
+
+        function initAudio(audioUrl) {
+            if (!audioUrl) return;
+
             audioPlayer = document.querySelector("#audioPlayer");
-            audioPlayer.src = modelData.audioUrl;
+            audioPlayer.src = audioUrl;
 
             // Audio event listeners
             audioPlayer.addEventListener('loadedmetadata', () => {
@@ -502,7 +533,7 @@
                     audioButton.className = 'audio-button playing';
                     audioButton.textContent = '⏸️';
                     audioControls.style.display = 'block';
-                    audioTitle.textContent = modelData.audioTitle;
+                    audioTitle.textContent = artifactData?.tenHienVat3D || 'Đang phát audio';
                     audioInfo.classList.add('hidden');
                 }).catch(error => {
                     console.error('Audio play error:', error);
@@ -532,13 +563,36 @@
         }
 
         function showModelInfo(data) {
-            modelName.textContent = data.name;
-            modelDescription.textContent = data.description;
-            modelInfo.style.display = 'block';
-            audioButton.style.display = 'flex';
+            modelName.textContent = data.tenHienVat3D || 'Hiện vật văn hóa';
 
-            // Initialize audio
-            initAudio();
+            // Truncate description if too long
+            const description = data.gioiThieu || data.hienVatObj?.mieuTa || 'Không có mô tả';
+            const truncatedDesc = description.length > 200 ? description.substring(0, 200) + '...' : description;
+            modelDescription.textContent = truncatedDesc;
+
+            // Show details
+            const details = [];
+            if (data.hienVatObj?.nienDaiTuongDoi) {
+                details.push(`📅 ${data.hienVatObj.nienDaiTuongDoi}`);
+            }
+            if (data.chieuCao && data.chieuDai && data.chieuRong) {
+                details.push(`📏 ${data.chieuCao} × ${data.chieuDai} × ${data.chieuRong} cm`);
+            }
+            if (data.hienVatObj?.diaDiemLuuGiu) {
+                details.push(`📍 ${data.hienVatObj.diaDiemLuuGiu}`);
+            }
+            modelDetails.innerHTML = details.join('<br>');
+
+            modelInfo.style.display = 'block';
+
+            // Show audio button if audio is available
+            const audioUrl = getFirstUrl(data.audio);
+            if (audioUrl) {
+                audioButton.style.display = 'flex';
+                initAudio(audioUrl);
+            } else {
+                audioInfo.classList.add('hidden');
+            }
         }
 
         function hideModelInfo() {
@@ -550,13 +604,18 @@
 
         function loadGLBModel(data, anchor) {
             return new Promise((resolve, reject) => {
-                loadingOverlay.style.display = 'block';
-                updateProgress(0, "Đang tải model...");
+                updateProgress(0, `Đang tải ${data.tenHienVat3D}...`);
+
+                const modelUrl = getFirstUrl(data.model3dPcGlb);
+                if (!modelUrl) {
+                    reject(new Error('Không tìm thấy URL model 3D'));
+                    return;
+                }
 
                 const loader = new GLTFLoader();
 
                 loader.load(
-                    data.modelUrl,
+                    modelUrl,
                     // onLoad
                     (gltf) => {
                         updateProgress(90, "Thiết lập model...");
@@ -627,8 +686,15 @@
 
         async function initAR() {
             try {
+                if (!artifactData) {
+                    loadingText.textContent = 'Đang chờ dữ liệu từ ứng dụng...';
+                    return;
+                }
+
                 hideError();
                 setStatus('loading');
+                loadingOverlay.style.display = 'block';
+                updateProgress(10, 'Khởi tạo AR...');
 
                 // Khởi tạo MindAR
                 mindarThree = new MindARThree({
@@ -637,7 +703,9 @@
                 });
 
                 const { renderer, scene, camera } = mindarThree;
-                const anchor = mindarThree.addAnchor(modelData.targetIndex);
+                const anchor = mindarThree.addAnchor(0);
+
+                updateProgress(30, 'Thiết lập ánh sáng...');
 
                 // Lighting setup
                 const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
@@ -652,16 +720,18 @@
                 pointLight.position.set(0, 3, 0);
                 scene.add(pointLight);
 
+                updateProgress(50, 'Thiết lập tracking...');
+
                 // Target tracking events
                 anchor.onTargetFound = () => {
                     targetFound = true;
 
                     if (!isModelLoaded) {
-                        loadGLBModel(modelData, anchor).catch(error => {
+                        loadGLBModel(artifactData, anchor).catch(error => {
                             console.error("Failed to load model:", error);
                         });
                     } else {
-                        showModelInfo(modelData);
+                        showModelInfo(artifactData);
                     }
                 };
 
@@ -670,8 +740,11 @@
                     hideModelInfo();
                 };
 
+                updateProgress(70, 'Khởi động camera...');
+
                 await mindarThree.start();
                 setStatus('default');
+                loadingOverlay.style.display = 'none';
 
                 // Animation loop
                 const clock = new THREE.Clock();
@@ -738,9 +811,6 @@
             }
         });
 
-        // Auto-start when page loads
-        window.addEventListener('load', initAR);
-
         // Retry button
         retryButton.addEventListener('click', () => {
             cleanup();
@@ -749,6 +819,85 @@
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', cleanup);
+
+        // Listen for messages from React Native WebView
+        window.addEventListener("message", function (event) {
+            try {
+                console.log("Received message:", event.data);
+
+                let data;
+                if (typeof event.data === 'string') {
+                    data = JSON.parse(event.data);
+                } else {
+                    data = event.data;
+                }
+
+                console.log("Parsed data:", data);
+
+                // Check if this is artifact data
+                if (data && (data.tenHienVat3D || data.hienVatObj)) {
+                    artifactData = data;
+                    console.log("Artifact data received:", artifactData);
+
+                    // Validate required fields
+                    const modelUrl = getFirstUrl(artifactData.model3dPcGlb);
+                    if (!modelUrl) {
+                        showError("Dữ liệu không hợp lệ", "Không tìm thấy URL model 3D");
+                        return;
+                    }
+
+                    // Start AR initialization
+                    initAR();
+                } else {
+                    console.log("Received other message:", data);
+                }
+            } catch (error) {
+                console.error("Error processing message:", error);
+                showError("Lỗi dữ liệu", "Không thể xử lý dữ liệu từ ứng dụng");
+            }
+        });
+
+        // Also listen for document messages (alternative method)
+        document.addEventListener("message", function (event) {
+            window.dispatchEvent(new MessageEvent('message', { data: event.data }));
+        });
+
+        // Send ready message to React Native
+        function sendReadyMessage() {
+            try {
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({
+                        type: 'ready',
+                        message: 'AR viewer is ready to receive data'
+                    }));
+                }
+            } catch (error) {
+                console.log("ReactNativeWebView not available");
+            }
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            console.log("Page loaded, sending ready message");
+            sendReadyMessage();
+
+            // Show waiting message
+            loadingText.textContent = 'Đang chờ dữ liệu từ ứng dụng...';
+            updateProgress(0, 'Sẵn sàng nhận dữ liệu');
+        });
+
+        // Fallback: try to get data from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const dataParam = urlParams.get('data');
+        if (dataParam) {
+            try {
+                artifactData = JSON.parse(decodeURIComponent(dataParam));
+                console.log("Data from URL params:", artifactData);
+                initAR();
+            } catch (error) {
+                console.error("Error parsing URL data:", error);
+            }
+        }
     </script>
 </body>
 
