@@ -7,14 +7,14 @@
         content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
     <title>AR Audio Scanner - Optimized</title>
     <script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-    "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+    }
   }
-}
-</script>
+  </script>
     <style>
         * {
             margin: 0;
@@ -23,7 +23,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #000;
             overflow: hidden;
             height: 100vh;
@@ -490,11 +490,11 @@
         let mindarThree = null, mixer = null, isModelLoaded = false, targetFound = false, audioPlayer = null, isAudioPlaying = false;
         let anchors = [];
         let currentTrackIndex = -1;
-        let artifactData = [];
+        let artifactData = new Map(); // Changed to Map<stt, ArtifactData>
         let currentArtifact = null;
         let isARInitialized = false;
         let loadingTimeout = null;
-        let globalFileMindUrl = null; // New: To store the MindAR target file URL
+        let globalFileMindUrl = null;
 
         // STRICT LOADING CONTROL - Silent blocking
         let isCurrentlyLoading = false;
@@ -503,9 +503,9 @@
         let loadingPromise = null;
 
         // Memory Management
-        const MAX_CACHED_MODELS = 2; // New: Max number of models to cache
-        let modelCache = new Map(); // New: Map<modelUrl, { model: THREE.Group, lastUsed: number }>
-        let activeModels = new Map(); // Existing: Map<trackIndex, THREE.Group>
+        const MAX_CACHED_MODELS = 2;
+        let modelCache = new Map(); // Map<modelUrl, { model: THREE.Group, lastUsed: number }>
+        let activeModels = new Map(); // Map<trackIndex, THREE.Group>
         let urlValidationCache = new Map();
 
         // Performance settings
@@ -791,7 +791,7 @@
             }
 
             return {
-                index: index,
+                index: index, // This is the stt value
                 name: artifact.tenHienVat3D || artifact.hienVatObj?.tenHienVat || "Hiện vật 3D",
                 description: artifact.gioiThieu || artifact.hienVatObj?.mieuTa || "Mô tả hiện vật",
                 modelUrl: modelUrl,
@@ -808,9 +808,8 @@
         }
 
         // Data receiving with cleanup
-        function receiveDataFromReactNative(data, fileMindUrl) { // Modified: Added fileMindUrl parameter
+        function receiveDataFromReactNative(data, fileMindUrl) {
             try {
-                showError('fileMindUrl', fileMindUrl)
                 console.log('Received data from React Native:', data);
 
                 // Store the new fileMindUrl
@@ -829,21 +828,30 @@
                 clearOldData(); // This will also call clearAllModelsAndCache
 
                 if (Array.isArray(data) && data.length > 0) {
-                    artifactData = data;
-                    elements.dataStatus.textContent = `${data.length} items`;
+                    // Convert array to a Map for easy lookup by stt
+                    artifactData = new Map();
+                    data.forEach(artifact => {
+                        if (typeof artifact.stt === 'number') {
+                            artifactData.set(artifact.stt, artifact);
+                        } else {
+                            console.warn('Artifact missing stt property or stt is not a number:', artifact);
+                        }
+                    });
+
+                    elements.dataStatus.textContent = `${artifactData.size} items`;
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
 
                     if (window.ReactNativeWebView) {
                         window.ReactNativeWebView.postMessage(JSON.stringify({
                             type: 'DATA_RECEIVED',
-                            data: { count: data.length, timestamp: Date.now() }
+                            data: { count: artifactData.size, timestamp: Date.now() }
                         }));
                     }
 
-                    data.forEach((artifact, index) => {
+                    artifactData.forEach((artifact, stt) => {
                         const modelUrl = artifact.model3dPcGlb ? artifact.model3dPcGlb.split(',')[0].trim() : null;
-                        console.log(`Artifact ${index}:`, {
+                        console.log(`Artifact (stt: ${stt}):`, {
                             name: artifact.tenHienVat3D,
                             hasModel: !!artifact.model3dPcGlb,
                             modelUrl: modelUrl,
@@ -906,16 +914,16 @@
             try {
                 const message = JSON.parse(event.data);
                 if (message.type === 'ARTIFACT_DATA' && message.data) {
-                    receiveDataFromReactNative(message.data, message.fileMindUrl || null); // Pass fileMindUrl
+                    receiveDataFromReactNative(message.data, message.fileMindUrl || null);
                 } else if (message.type === 'SET_ARTIFACTS' && message.artifacts) {
-                    receiveDataFromReactNative(message.artifacts, message.fileMindUrl || null); // Pass fileMindUrl
+                    receiveDataFromReactNative(message.artifacts, message.fileMindUrl || null);
                 }
             } catch (error) {
                 if (typeof event.data === 'string') {
                     try {
                         const directData = JSON.parse(event.data);
                         if (Array.isArray(directData)) {
-                            receiveDataFromReactNative(directData, null); // No fileMindUrl in direct array data
+                            receiveDataFromReactNative(directData, null);
                         }
                     } catch (e) {
                         console.error('Failed to parse direct data:', e);
@@ -928,13 +936,13 @@
             window.dispatchEvent(new MessageEvent('message', { data: event.data }));
         });
 
-        function getModelDataForTrack(trackIndex) {
-            if (artifactData.length > 0 && trackIndex < artifactData.length) {
-                const artifact = artifactData[trackIndex];
+        function getModelDataForTrack(trackIndex) { // trackIndex here is the stt value
+            const artifact = artifactData.get(trackIndex);
+            if (artifact) {
                 currentArtifact = artifact;
                 return parseArtifactToModelData(artifact, trackIndex);
             }
-            console.warn(`No artifact found for track index ${trackIndex}`);
+            console.warn(`No artifact found for track index (stt) ${trackIndex}`);
             return null;
         }
 
@@ -1268,11 +1276,11 @@
 
         async function initAR() {
             try {
-                if (!globalFileMindUrl) { // Check if fileMindUrl is available
+                if (!globalFileMindUrl) {
                     showError("Thiếu URL mục tiêu", "Chưa nhận được URL file MindAR để khởi tạo AR.");
                     return;
                 }
-                if (artifactData.length === 0) {
+                if (artifactData.size === 0) { // Check size of Map
                     showError("Không có dữ liệu", "Chưa nhận được dữ liệu hiện vật");
                     return;
                 }
@@ -1285,7 +1293,7 @@
 
                 mindarThree = new MindARThree({
                     container: document.querySelector("#container"),
-                    imageTargetSrc: globalFileMindUrl // Use the dynamic fileMindUrl
+                    imageTargetSrc: globalFileMindUrl
                 });
 
                 const { renderer, scene, camera } = mindarThree;
@@ -1303,66 +1311,64 @@
 
                 console.log(`🎨 Renderer configured for optimized quality with FREE ROTATION (pixel ratio: ${pixelRatio})`);
 
-                const maxTargets = Math.min(artifactData.length, 8);
-                console.log(`Creating ${maxTargets} optimized AR targets with FREE ROTATION`);
+                // Iterate through all artifacts based on their 'stt' key
+                console.log(`Creating ${artifactData.size} optimized AR targets with FREE ROTATION`);
 
-                for (let i = 0; i < maxTargets; i++) {
+                for (const targetIndex of artifactData.keys()) { // Iterate over stt keys
                     try {
-                        const anchor = mindarThree.addAnchor(i);
+                        const anchor = mindarThree.addAnchor(targetIndex); // Use stt as target index
                         anchors.push(anchor);
 
                         anchor.onTargetFound = async () => {
                             targetFound = true;
-                            currentTrackIndex = i;
+                            currentTrackIndex = targetIndex; // Store the stt value
 
-                            console.log(`🎯 Target ${i} found! Loading optimized artifact with FREE ROTATION at index ${i}`);
+                            console.log(`🎯 Target ${targetIndex} found! Loading optimized artifact with FREE ROTATION at index ${targetIndex}`);
 
-                            const modelData = getModelDataForTrack(i);
+                            const modelData = getModelDataForTrack(targetIndex); // Get model data using stt
                             if (!modelData) {
-                                console.warn(`❌ No model data for index ${i}`);
+                                console.warn(`❌ No model data for index ${targetIndex}`);
                                 return;
                             }
 
-                            // Show model info
-                            showModelInfo(modelData, i);
+                            showModelInfo(modelData, targetIndex);
 
                             if (!modelData.modelUrl) {
-                                console.warn(`❌ No model URL for index ${i}`);
+                                console.warn(`❌ No model URL for index ${targetIndex}`);
                                 return;
                             }
 
-                            console.log(`📦 Loading optimized model for FREE ROTATION index ${i}: ${modelData.name}`);
+                            console.log(`📦 Loading optimized model for FREE ROTATION index ${targetIndex}: ${modelData.name}`);
 
                             try {
-                                const model = await loadModel(modelData.modelUrl, i);
+                                const model = await loadModel(modelData.modelUrl, targetIndex);
                                 if (model) {
-                                    activeModels.set(i, model); // Store active model
+                                    activeModels.set(targetIndex, model);
                                     anchor.group.add(model);
                                     isModelLoaded = true;
-                                    console.log(`✅ Optimized model ${i} loaded and added to scene with FREE ROTATION`);
+                                    console.log(`✅ Optimized model ${targetIndex} loaded and added to scene with FREE ROTATION`);
                                 }
                             } catch (error) {
-                                console.error(`❌ Failed to load optimized model ${i}:`, error);
+                                console.error(`❌ Failed to load optimized model ${targetIndex}:`, error);
                             }
                         };
 
                         anchor.onTargetLost = () => {
-                            if (currentTrackIndex === i) {
-                                console.log(`👋 Target ${i} lost`);
+                            if (currentTrackIndex === targetIndex) {
+                                console.log(`👋 Target ${targetIndex} lost`);
                                 targetFound = false;
                                 hideModelInfo();
 
-                                if (activeModels.has(i)) {
-                                    const model = activeModels.get(i);
+                                if (activeModels.has(targetIndex)) {
+                                    const model = activeModels.get(targetIndex);
                                     anchor.group.remove(model);
-                                    activeModels.delete(i); // Remove from active models
+                                    activeModels.delete(targetIndex);
                                 }
                             }
                         };
 
                     } catch (error) {
-                        console.log(`Target ${i} not found, stopping at ${i} targets`);
-                        break;
+                        console.log(`Error adding target ${targetIndex}, skipping:`, error);
                     }
                 }
 
@@ -1501,7 +1507,7 @@
 
         elements.retryButton.addEventListener('click', () => {
             cleanup();
-            if (artifactData.length > 0 && globalFileMindUrl) { // Ensure fileMindUrl is present for retry
+            if (artifactData.size > 0 && globalFileMindUrl) {
                 initAR();
             } else {
                 elements.waitingMessage.style.display = 'block';
