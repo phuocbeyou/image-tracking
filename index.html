@@ -810,6 +810,7 @@
         // Data receiving with cleanup
         function receiveDataFromReactNative(data, fileMindUrl) { // Modified: Added fileMindUrl parameter
             try {
+                showError('fileMindUrl', fileMindUrl)
                 console.log('Received data from React Native:', data);
 
                 // Store the new fileMindUrl
