@@ -609,7 +609,7 @@
                         } else {
                             if (child.material.map) child.material.map.dispose();
                             if (child.material.normalMap) child.material.normalMap.dispose();
-                            if (child.material.roughnessMap) child.roughnessMap.dispose();
+                            if (child.material.roughnessMap) child.material.roughnessMap.dispose();
                             if (child.material.metalnessMap) child.material.metalnessMap.dispose();
                             child.material.dispose();
                         }
@@ -821,18 +821,13 @@
         }
 
         // Data receiving with cleanup
-        function receiveDataFromReactNative(data, fileMind) {
+        function receiveDataFromReactNative(data) {
             try {
-                console.log('Received message from React Native:', data);
+                console.log('Received data from React Native:', data);
 
-                const newMindFileUrl = fileMind || null;
-                const receivedArtifacts = data; // Assuming message.data is the array of artifacts
-
-                console.log('Extracted newMindFileUrl:', newMindFileUrl);
-                console.log('Extracted receivedArtifacts:', receivedArtifacts);
-                console.log('Is receivedArtifacts an array?', Array.isArray(receivedArtifacts));
-                if (Array.isArray(receivedArtifacts)) {
-                    console.log('receivedArtifacts length:', receivedArtifacts.length);
+                let newMindFileUrl = null;
+                if (data && data.fileMindUrl) { // Assuming 'data' itself is the object containing fileMindUrl
+                    newMindFileUrl = data.fileMindUrl;
                 }
 
                 // Check if MindAR target file URL has changed
@@ -846,8 +841,8 @@
 
                 currentMindFileUrl = newMindFileUrl; // Update the current MindAR URL
 
-                if (Array.isArray(receivedArtifacts) && receivedArtifacts.length > 0) {
-                    artifactData = receivedArtifacts; // Assign the actual array of artifacts
+                if (data && Array.isArray(data.artifacts) && data.artifacts.length > 0) {
+                    artifactData = data.artifacts; // Assign the actual array of artifacts
                     elements.dataStatus.textContent = `${artifactData.length} items`;
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
@@ -873,39 +868,41 @@
                         initAR();
                     }
                 } else {
-                    console.warn('Invalid artifacts data received from React Native: Not an array or empty.');
+                    console.warn('Invalid data received from React Native');
                     elements.dataStatus.textContent = 'Invalid data';
                     elements.dataStatus.style.background = 'rgba(255, 193, 7, 0.8)';
-                    showError("Dữ liệu không hợp lệ", "Dữ liệu hiện vật nhận được không đúng định dạng hoặc rỗng.");
+                    showError("Dữ liệu không hợp lệ", "Dữ liệu nhận được không đúng định dạng");
                 }
             } catch (error) {
                 console.error('Error processing data from React Native:', error);
                 elements.dataStatus.textContent = 'Error';
                 elements.dataStatus.style.background = 'rgba(244, 67, 54, 0.8)';
-                showError("Lỗi xử lý dữ liệu", "Không thể xử lý dữ liệu từ ứng dụng. Vui lòng kiểm tra định dạng.", error);
+                showError("Lỗi xử lý dữ liệu", "Không thể xử lý dữ liệu từ ứng dụng");
             }
         }
 
         window.receiveDataFromReactNative = receiveDataFromReactNative;
-        window.setArtifactData = receiveDataFromReactNative; // Keep alias if needed
+        window.setArtifactData = receiveDataFromReactNative;
 
         window.addEventListener('message', function (event) {
-            const message = JSON.parse(event.data);
-
-            // Chỉ show cấu trúc message
-            showError(
-                "data",
-                `type: ${JSON.stringify(message)}`
-            );
             try {
                 const message = JSON.parse(event.data);
-                // Pass the entire message object to receiveDataFromReactNative
                 if (message.type === 'ARTIFACT_DATA' && message.data) {
-                    receiveDataFromReactNative(message.data, message.fileMind);
+                    receiveDataFromReactNative(message.data);
+                } else if (message.type === 'SET_ARTIFACTS' && message.artifacts) {
+                    receiveDataFromReactNative(message.artifacts);
                 }
             } catch (error) {
-                // Attempt to parse direct data if it's not a structured message
-                showError("Lỗi dữ liệu", error);
+                if (typeof event.data === 'string') {
+                    try {
+                        const directData = JSON.parse(event.data);
+                        if (Array.isArray(directData)) {
+                            receiveDataFromReactNative(directData);
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse direct data:', e);
+                    }
+                }
             }
         });
 
