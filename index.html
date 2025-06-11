@@ -893,11 +893,10 @@
             const message = JSON.parse(event.data);
 
             // Chỉ show cấu trúc message
-            showError("data structure", {
-                type: message?.type,
-                hasData: !!message?.data,
-                hasFileMind: !!message?.fileMind,
-            });
+            showError(
+                "data",
+                `type: ${message?.type}, has data: ${!!message?.data}, has fileMind: ${!!message?.fileMind}`
+            );
             try {
                 const message = JSON.parse(event.data);
                 // Pass the entire message object to receiveDataFromReactNative
