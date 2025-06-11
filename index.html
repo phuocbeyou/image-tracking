@@ -890,28 +890,23 @@
         window.setArtifactData = receiveDataFromReactNative; // Keep alias if needed
 
         window.addEventListener('message', function (event) {
+            const message = JSON.parse(event.data);
+
+            // Chỉ show cấu trúc message
+            showError("data structure", {
+                type: message?.type,
+                hasData: !!message?.data,
+                hasFileMind: !!message?.fileMind,
+            });
             try {
                 const message = JSON.parse(event.data);
                 // Pass the entire message object to receiveDataFromReactNative
                 if (message.type === 'ARTIFACT_DATA' && message.data) {
                     receiveDataFromReactNative(message.data, message.fileMind);
-                } else if (message.type === 'SET_ARTIFACTS' && message.artifacts) {
-                    // If SET_ARTIFACTS is still used, adapt it to the new structure
-                    receiveDataFromReactNative(message.artifacts, message.fileMind || null);
                 }
             } catch (error) {
                 // Attempt to parse direct data if it's not a structured message
-                if (typeof event.data === 'string') {
-                    try {
-                        const directData = JSON.parse(event.data);
-                        if (Array.isArray(directData)) {
-                            // If direct data is just an array, assume no fileMind and pass it as 'data'
-                            receiveDataFromReactNative(directData, "");
-                        }
-                    } catch (e) {
-                        console.error('Failed to parse direct data:', e);
-                    }
-                }
+                showError("Lỗi dữ liệu", error);
             }
         });
 
