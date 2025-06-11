@@ -828,6 +828,14 @@
                 const newMindFileUrl = message.fileMind || null;
                 const receivedArtifacts = message.data; // Assuming message.data is the array of artifacts
 
+                console.log('Extracted newMindFileUrl:', newMindFileUrl);
+                console.log('Extracted receivedArtifacts:', receivedArtifacts);
+                console.log('Is receivedArtifacts an array?', Array.isArray(receivedArtifacts));
+                if (Array.isArray(receivedArtifacts)) {
+                    console.log('receivedArtifacts length:', receivedArtifacts.length);
+                }
+
+
                 // Check if MindAR target file URL has changed
                 if (isARInitialized && newMindFileUrl && newMindFileUrl !== currentMindFileUrl) {
                     console.log(`MindAR target file URL changed from ${currentMindFileUrl} to ${newMindFileUrl}. Re-initializing AR.`);
@@ -858,8 +866,7 @@
                             name: artifact.tenHienVat3D,
                             hasModel: !!artifact.model3dPcGlb,
                             modelUrl: modelUrl,
-                            audio: artifact.audio,
-                            fileMind: newMindFileUrl // Log the new key
+                            audio: artifact.audio
                         });
                     });
 
@@ -867,16 +874,16 @@
                         initAR();
                     }
                 } else {
-                    console.warn('Invalid artifacts data received from React Native');
+                    console.warn('Invalid artifacts data received from React Native: Not an array or empty.');
                     elements.dataStatus.textContent = 'Invalid data';
                     elements.dataStatus.style.background = 'rgba(255, 193, 7, 0.8)';
-                    showError("Dữ liệu không hợp lệ", "Dữ liệu hiện vật nhận được không đúng định dạng");
+                    showError("Dữ liệu không hợp lệ", "Dữ liệu hiện vật nhận được không đúng định dạng hoặc rỗng.");
                 }
             } catch (error) {
                 console.error('Error processing data from React Native:', error);
                 elements.dataStatus.textContent = 'Error';
                 elements.dataStatus.style.background = 'rgba(244, 67, 54, 0.8)';
-                showError("Lỗi xử lý dữ liệu", "Không thể xử lý dữ liệu từ ứng dụng");
+                showError("Lỗi xử lý dữ liệu", "Không thể xử lý dữ liệu từ ứng dụng. Vui lòng kiểm tra định dạng.", error);
             }
         }
 
