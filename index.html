@@ -609,8 +609,8 @@
                         } else {
                             if (child.material.map) child.material.map.dispose();
                             if (child.material.normalMap) child.material.normalMap.dispose();
-                            if (child.material.roughnessMap) child.roughnessMap.dispose();
-                            if (child.material.metalnessMap) child.metalnessMap.dispose();
+                            if (child.material.roughnessMap) child.material.roughnessMap.dispose();
+                            if (child.material.metalnessMap) child.material.metalnessMap.dispose();
                             child.material.dispose();
                         }
                     }
@@ -826,8 +826,8 @@
                 console.log('Received data from React Native:', data);
 
                 let newMindFileUrl = null;
-                if (Array.isArray(data) && data.length > 0 && data[0].fileMindUrl) {
-                    newMindFileUrl = data[0].fileMindUrl;
+                if (data && data.fileMindUrl) { // Assuming 'data' itself is the object containing fileMindUrl
+                    newMindFileUrl = data.fileMindUrl;
                 }
 
                 // Check if MindAR target file URL has changed
@@ -841,27 +841,26 @@
 
                 currentMindFileUrl = newMindFileUrl; // Update the current MindAR URL
 
-                if (Array.isArray(data) && data.length > 0) {
-                    artifactData = data;
-                    elements.dataStatus.textContent = `${data.length} items`;
+                if (data && Array.isArray(data.artifacts) && data.artifacts.length > 0) {
+                    artifactData = data.artifacts; // Assign the actual array of artifacts
+                    elements.dataStatus.textContent = `${artifactData.length} items`;
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
 
                     if (window.ReactNativeWebView) {
                         window.ReactNativeWebView.postMessage(JSON.stringify({
                             type: 'DATA_RECEIVED',
-                            data: { count: data.length, timestamp: Date.now() }
+                            data: { count: artifactData.length, timestamp: Date.now() }
                         }));
                     }
 
-                    data.forEach((artifact, index) => {
+                    artifactData.forEach((artifact, index) => { // Iterate over artifactData
                         const modelUrl = artifact.model3dPcGlb ? artifact.model3dPcGlb.split(',')[0].trim() : null;
                         console.log(`Artifact ${index}:`, {
                             name: artifact.tenHienVat3D,
                             hasModel: !!artifact.model3dPcGlb,
                             modelUrl: modelUrl,
-                            audio: artifact.audio,
-                            fileMindUrl: artifact.fileMindUrl // Log the new key
+                            audio: artifact.audio
                         });
                     });
 
@@ -1255,13 +1254,13 @@
 
         async function initAR() {
             try {
-                if (artifactData.length === 0 || !currentMindFileUrl) {
+                if (artifactData.length === 0) {
                     showError("Không có dữ liệu", "Chưa nhận được dữ liệu hiện vật");
                     return;
                 }
 
                 // Use currentMindFileUrl if available, otherwise fallback to default
-                const imageTargetSource = currentMindFileUrl || 'https://u2502-dev.dttt.vn/static/assets//app/wwwroot/uploads/2025/6/7/0c9aa079-bccd-4cb1-b236-745af6d5ad7c_targets (2).mind';
+                const imageTargetSource = currentMindFileUrl || "https://fuukyqvnitlhdhwygfcy.supabase.co/storage/v1/object/public/qnail//demo.mind";
                 console.log(`Using MindAR image target source: ${imageTargetSource}`);
 
 
