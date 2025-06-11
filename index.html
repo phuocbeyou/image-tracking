@@ -23,7 +23,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #000;
             overflow: hidden;
             height: 100vh;
@@ -123,23 +123,30 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top: 3px solid #4CAF50;
+        /* New loading dot animation */
+        .loading-dot-animation {
+            width: 15px;
+            height: 15px;
+            background-color: #4CAF50;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
             margin: 0 auto 15px;
+            animation: dotPulse 1.2s infinite ease-out;
         }
 
-        @keyframes spin {
+        @keyframes dotPulse {
             0% {
-                transform: rotate(0deg);
+                transform: scale(0.8);
+                opacity: 0.7;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
             }
 
             100% {
-                transform: rotate(360deg);
+                transform: scale(0.8);
+                opacity: 0.7;
             }
         }
 
@@ -445,7 +452,7 @@
     </div>
 
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="spinner"></div>
+        <div class="loading-dot-animation"></div>
         <div id="loadingText">Đang tải model chất lượng cao...</div>
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill"></div>
@@ -494,6 +501,7 @@
         let currentArtifact = null;
         let isARInitialized = false;
         let loadingTimeout = null;
+        let currentMindFileUrl = null; // New variable to store the current MindAR target file URL
 
         // STRICT LOADING CONTROL - Silent blocking
         let isCurrentlyLoading = false;
@@ -543,6 +551,7 @@
             rotationIndicator: document.querySelector("#rotationIndicator"),
             waitingMessage: document.querySelector("#waitingMessage"),
             loadingOverlay: document.querySelector("#loadingOverlay"),
+            loadingDotAnimation: document.querySelector(".loading-dot-animation"), // New element
             loadingText: document.querySelector("#loadingText"),
             progressFill: document.querySelector("#progressFill"),
             progressText: document.querySelector("#progressText"),
@@ -600,8 +609,8 @@
                         } else {
                             if (child.material.map) child.material.map.dispose();
                             if (child.material.normalMap) child.material.normalMap.dispose();
-                            if (child.material.roughnessMap) child.roughnessMap.dispose();
-                            if (child.material.metalnessMap) child.metalnessMap.dispose();
+                            if (child.material.roughnessMap) child.material.roughnessMap.dispose();
+                            if (child.material.metalnessMap) child.material.metalnessMap.dispose();
                             child.material.dispose();
                         }
                     }
@@ -816,23 +825,36 @@
             try {
                 console.log('Received data from React Native:', data);
 
-                // Clear all models and reset AR state when new data is received
-                cleanup(); // This will call clearAllOldModels internally
+                let newMindFileUrl = null;
+                if (data && data.fileMindUrl) { // Assuming 'data' itself is the object containing fileMindUrl
+                    newMindFileUrl = data.fileMindUrl;
+                }
 
-                if (Array.isArray(data) && data.length > 0) {
-                    artifactData = data;
-                    elements.dataStatus.textContent = `${data.length} items`;
+                // Check if MindAR target file URL has changed
+                if (isARInitialized && newMindFileUrl && newMindFileUrl !== currentMindFileUrl) {
+                    console.log(`MindAR target file URL changed from ${currentMindFileUrl} to ${newMindFileUrl}. Re-initializing AR.`);
+                    cleanup(); // Full cleanup to reset MindAR
+                } else if (!newMindFileUrl && currentMindFileUrl) {
+                    console.log(`MindAR target file URL removed. Re-initializing AR.`);
+                    cleanup(); // Full cleanup if URL is removed
+                }
+
+                currentMindFileUrl = newMindFileUrl; // Update the current MindAR URL
+
+                if (data && Array.isArray(data.artifacts) && data.artifacts.length > 0) {
+                    artifactData = data.artifacts; // Assign the actual array of artifacts
+                    elements.dataStatus.textContent = `${artifactData.length} items`;
                     elements.dataStatus.style.background = 'rgba(76, 175, 80, 0.8)';
                     elements.waitingMessage.style.display = 'none';
 
                     if (window.ReactNativeWebView) {
                         window.ReactNativeWebView.postMessage(JSON.stringify({
                             type: 'DATA_RECEIVED',
-                            data: { count: data.length, timestamp: Date.now() }
+                            data: { count: artifactData.length, timestamp: Date.now() }
                         }));
                     }
 
-                    data.forEach((artifact, index) => {
+                    artifactData.forEach((artifact, index) => { // Iterate over artifactData
                         const modelUrl = artifact.model3dPcGlb ? artifact.model3dPcGlb.split(',')[0].trim() : null;
                         console.log(`Artifact ${index}:`, {
                             name: artifact.tenHienVat3D,
@@ -1237,6 +1259,11 @@
                     return;
                 }
 
+                // Use currentMindFileUrl if available, otherwise fallback to default
+                const imageTargetSource = currentMindFileUrl || "https://fuukyqvnitlhdhwygfcy.supabase.co/storage/v1/object/public/qnail//demo.mind";
+                console.log(`Using MindAR image target source: ${imageTargetSource}`);
+
+
                 elements.errorMessage.style.display = 'none';
                 elements.retryButton.style.display = 'none';
                 setStatus('loading');
@@ -1245,7 +1272,7 @@
 
                 mindarThree = new MindARThree({
                     container: document.querySelector("#container"),
-                    imageTargetSrc: "https://u2502-dev.dttt.vn/static/assets//app/wwwroot/uploads/2025/6/7/0c9aa079-bccd-4cb1-b236-745af6d5ad7c_targets (2).mind"
+                    imageTargetSrc: imageTargetSource // Use the dynamic URL
                 });
 
                 const { renderer, scene, camera } = mindarThree;
@@ -1341,8 +1368,9 @@
                 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
                 directionalLight.position.set(5, 5, 5);
                 directionalLight.castShadow = true;
-                directionalLight.shadow.mapSize.width = 2048;
-                directionalLight.shadow.mapSize.height = 2048;
+                // Optimized shadow map size for mobile performance
+                directionalLight.shadow.mapSize.width = 1024;
+                directionalLight.shadow.mapSize.height = 1024;
                 directionalLight.shadow.camera.near = 0.5;
                 directionalLight.shadow.camera.far = 50;
                 scene.add(directionalLight);
@@ -1421,6 +1449,8 @@
             if (mindarThree) {
                 mindarThree.stop();
                 mindarThree.renderer.setAnimationLoop(null);
+                // Dispose MindAR resources
+                mindarThree.dispose();
             }
 
             if (mixer) {
