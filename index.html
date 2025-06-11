@@ -23,7 +23,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #000;
             overflow: hidden;
             height: 100vh;
@@ -502,8 +502,11 @@
         let loadingPromise = null;
 
         // Memory Management
-        let modelCache = new Map();
-        let activeModels = new Map();
+        // Use a Map to maintain insertion order for LRU (Map iterates keys in insertion order)
+        let modelCache = new Map(); // Stores { modelUrl: { model: THREE.Group, lastUsed: timestamp } }
+        const MAX_CACHE_SIZE = 3;
+
+        let activeModels = new Map(); // Stores { trackIndex: THREE.Group }
         let urlValidationCache = new Map();
 
         // Performance settings
@@ -597,8 +600,8 @@
                         } else {
                             if (child.material.map) child.material.map.dispose();
                             if (child.material.normalMap) child.material.normalMap.dispose();
-                            if (child.material.roughnessMap) child.material.roughnessMap.dispose();
-                            if (child.material.metalnessMap) child.material.metalnessMap.dispose();
+                            if (child.material.roughnessMap) child.roughnessMap.dispose();
+                            if (child.material.metalnessMap) child.metalnessMap.dispose();
                             child.material.dispose();
                         }
                     }
@@ -613,31 +616,37 @@
             console.log('✅ Model disposed completely');
         }
 
-        // CLEAR ALL OLD MODELS WHEN LOADING NEW ONE
-        function clearAllOldModels() {
-            console.log('🧹 Clearing all old models to optimize memory...');
+        // NEW: Trim the model cache to MAX_CACHE_SIZE
+        function trimModelCache() {
+            while (modelCache.size > MAX_CACHE_SIZE) {
+                // Map.keys() returns keys in insertion order, so the first one is the LRU
+                const lruUrl = modelCache.keys().next().value;
+                const cachedItem = modelCache.get(lruUrl);
 
-            // Remove all active models from scene and dispose them
-            activeModels.forEach((model, index) => {
-                anchors.forEach(anchor => {
-                    if (anchor && anchor.group) {
-                        anchor.group.remove(model);
+                if (cachedItem && cachedItem.model) {
+                    // Only dispose if the model is not currently active in the scene
+                    let isActive = false;
+                    activeModels.forEach(activeModel => {
+                        if (activeModel === cachedItem.model) {
+                            isActive = true;
+                        }
+                    });
+
+                    if (!isActive) {
+                        console.log(`🗑️ Trimming LRU model from cache: ${lruUrl}`);
+                        disposeModel(cachedItem.model);
+                    } else {
+                        console.log(`⚠️ LRU model ${lruUrl} is still active, skipping disposal for now.`);
                     }
-                });
-                disposeModel(model);
-            });
+                }
+                modelCache.delete(lruUrl); // Remove from cache regardless
+            }
+            forceGarbageCollection();
+        }
 
-            // Clear active models map
-            activeModels.clear();
-
-            // Clear all cached models
-            modelCache.forEach((model, key) => {
-                disposeModel(model);
-            });
-            modelCache.clear();
-
-            // Clear URL validation cache
-            urlValidationCache.clear();
+        // Modified: Clear all models not in cache or active, and reset state
+        function clearAllOldModels() {
+            console.log('🧹 Clearing all non-cached/inactive models and resetting AR state...');
 
             // Stop any existing animations
             if (mixer) {
@@ -645,17 +654,44 @@
                 mixer = null;
             }
 
+            // Remove all active models from scene and dispose them if not in cache
+            activeModels.forEach((model, index) => {
+                let isInCache = false;
+                for (const [url, cachedItem] of modelCache.entries()) {
+                    if (cachedItem.model === model) {
+                        isInCache = true;
+                        break;
+                    }
+                }
+
+                if (!isInCache) {
+                    anchors.forEach(anchor => {
+                        if (anchor && anchor.group) {
+                            anchor.group.remove(model);
+                        }
+                    });
+                    disposeModel(model);
+                } else {
+                    console.log(`Keeping active model ${index} in scene as it's in cache.`);
+                }
+            });
+            activeModels.clear(); // Clear active models map
+
+            // Clear URL validation cache
+            urlValidationCache.clear();
+
             // Force garbage collection
             forceGarbageCollection();
 
-            console.log('✅ All old models cleared successfully');
+            console.log('✅ Non-cached/inactive models cleared successfully');
         }
 
         function cleanupMemory() {
             const currentMemory = getMemoryUsage();
             if (currentMemory > memoryThreshold) {
                 console.log(`Memory usage high (${currentMemory}MB), cleaning up...`);
-                clearAllOldModels();
+                // Trigger a more aggressive cleanup if needed, but trimModelCache should handle most
+                trimModelCache();
             }
         }
 
@@ -780,7 +816,8 @@
             try {
                 console.log('Received data from React Native:', data);
 
-                clearOldData();
+                // Clear all models and reset AR state when new data is received
+                cleanup(); // This will call clearAllOldModels internally
 
                 if (Array.isArray(data) && data.length > 0) {
                     artifactData = data;
@@ -822,35 +859,6 @@
             }
         }
 
-        function clearOldData() {
-            console.log('Clearing old data...');
-
-            stopAudio();
-
-            // Clear all old models
-            clearAllOldModels();
-
-            // Reset loading state
-            isCurrentlyLoading = false;
-            currentLoadingModelIndex = -1;
-            loadingPromise = null;
-
-            currentTrackIndex = -1;
-            currentArtifact = null;
-            targetFound = false;
-            isModelLoaded = false;
-            isModelInfoVisible = false;
-            rotationActive = false;
-            rotationY = 0;
-            rotationX = 0;
-            rotationZ = 0;
-            floatingOffset = 0;
-
-            hideModelInfo();
-
-            console.log('Old data cleared successfully');
-        }
-
         window.receiveDataFromReactNative = receiveDataFromReactNative;
         window.setArtifactData = receiveDataFromReactNative;
 
@@ -890,14 +898,25 @@
             return null;
         }
 
-        // OPTIMIZED MODEL LOADING WITH OLD MODEL CLEARING
+        // OPTIMIZED MODEL LOADING WITH CACHING
         async function loadModel(fileLink, modelIndex) {
             // SILENT LOADING CHECK - Just return if blocked
             if (!startLoading(modelIndex)) {
                 return null;
             }
 
-            // CLEAR ALL OLD MODELS BEFORE LOADING NEW ONE
+            // Check if model is already in cache
+            if (modelCache.has(fileLink)) {
+                const cachedItem = modelCache.get(fileLink);
+                cachedItem.lastUsed = Date.now(); // Update LRU timestamp
+                modelCache.delete(fileLink); // Re-insert to move to end (most recently used)
+                modelCache.set(fileLink, cachedItem);
+                console.log(`✅ Model ${modelIndex} from cache: ${fileLink}`);
+                finishLoading();
+                return cachedItem.model;
+            }
+
+            // Clear all currently active models that are not in cache
             clearAllOldModels();
 
             try {
@@ -1024,6 +1043,10 @@
                                 meshCount: meshCount,
                                 hasAnimations: gltf.animations && gltf.animations.length > 0
                             };
+
+                            // Add to cache and trim
+                            modelCache.set(fileLink, { model: model, lastUsed: Date.now() });
+                            trimModelCache();
 
                             updateProgress(100, "Hoàn thành tối ưu!");
 
@@ -1270,10 +1293,16 @@
 
                             console.log(`📦 Loading optimized model for FREE ROTATION index ${i}: ${modelData.name}`);
 
-                            // Always load fresh model (old ones are cleared)
                             try {
                                 const model = await loadModel(modelData.modelUrl, i);
                                 if (model) {
+                                    // Remove any previously active model from this anchor
+                                    if (activeModels.has(i)) {
+                                        const oldModel = activeModels.get(i);
+                                        if (anchor.group.children.includes(oldModel)) {
+                                            anchor.group.remove(oldModel);
+                                        }
+                                    }
                                     activeModels.set(i, model);
                                     anchor.group.add(model);
                                     isModelLoaded = true;
@@ -1292,7 +1321,10 @@
 
                                 if (activeModels.has(i)) {
                                     const model = activeModels.get(i);
-                                    anchor.group.remove(model);
+                                    // Only remove if it's still the active model for this anchor
+                                    if (anchor.group.children.includes(model)) {
+                                        anchor.group.remove(model);
+                                    }
                                 }
                             }
                         };
@@ -1396,8 +1428,35 @@
                 mixer = null;
             }
 
-            // Clear all models
-            clearAllOldModels();
+            // Clear all models from scene and dispose if not in cache
+            activeModels.forEach((model, index) => {
+                let isInCache = false;
+                for (const [url, cachedItem] of modelCache.entries()) {
+                    if (cachedItem.model === model) {
+                        isInCache = true;
+                        break;
+                    }
+                }
+                if (!isInCache) {
+                    anchors.forEach(anchor => {
+                        if (anchor && anchor.group) {
+                            anchor.group.remove(model);
+                        }
+                    });
+                    disposeModel(model);
+                } else {
+                    console.log(`Keeping active model ${index} in scene as it's in cache during cleanup.`);
+                }
+            });
+            activeModels.clear(); // Clear active models map
+
+            // Clear cache completely on full cleanup (e.g., new data received)
+            modelCache.forEach((cachedItem, url) => {
+                disposeModel(cachedItem.model);
+            });
+            modelCache.clear();
+            urlValidationCache.clear();
+
 
             stopAudio();
             isModelLoaded = false;
