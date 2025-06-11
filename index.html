@@ -895,7 +895,7 @@
             // Chỉ show cấu trúc message
             showError(
                 "data",
-                `type: ${message?.type}, has data: ${!!message?.data}, has fileMind: ${!!message?.fileMind}`
+                `type: ${message?.type}, has data: ${!!message?.data}, has fileMind: ${message.data?.fileMind}`
             );
             try {
                 const message = JSON.parse(event.data);
