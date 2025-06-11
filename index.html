@@ -23,7 +23,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #000;
             overflow: hidden;
             height: 100vh;
@@ -782,7 +782,7 @@
             let modelUrl = null;
             if (artifact.model3dPcGlb) {
                 const glbLinks = artifact.model3dPcGlb.split(',');
-                modelUrl = glbLinks[0].trim();
+                modelUrl = glbLinks[0].trim(); // Take the first GLB URL
             }
 
             let audioUrl = null;
@@ -1314,7 +1314,10 @@
                 // Iterate through all artifacts based on their 'stt' key
                 console.log(`Creating ${artifactData.size} optimized AR targets with FREE ROTATION`);
 
-                for (const targetIndex of artifactData.keys()) { // Iterate over stt keys
+                // Sort stt keys to ensure anchors are added in a consistent order if needed by MindAR
+                const sortedSttKeys = Array.from(artifactData.keys()).sort((a, b) => a - b);
+
+                for (const targetIndex of sortedSttKeys) { // Iterate over sorted stt keys
                     try {
                         const anchor = mindarThree.addAnchor(targetIndex); // Use stt as target index
                         anchors.push(anchor);
