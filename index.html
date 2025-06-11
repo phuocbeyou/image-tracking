@@ -1255,13 +1255,13 @@
 
         async function initAR() {
             try {
-                if (artifactData.length === 0) {
+                if (artifactData.length === 0 || !currentMindFileUrl) {
                     showError("Không có dữ liệu", "Chưa nhận được dữ liệu hiện vật");
                     return;
                 }
 
                 // Use currentMindFileUrl if available, otherwise fallback to default
-                const imageTargetSource = currentMindFileUrl;
+                const imageTargetSource = currentMindFileUrl || 'https://u2502-dev.dttt.vn/static/assets//app/wwwroot/uploads/2025/6/7/0c9aa079-bccd-4cb1-b236-745af6d5ad7c_targets (2).mind';
                 console.log(`Using MindAR image target source: ${imageTargetSource}`);
 
 
