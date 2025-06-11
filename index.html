@@ -821,12 +821,12 @@
         }
 
         // Data receiving with cleanup
-        function receiveDataFromReactNative(message) {
+        function receiveDataFromReactNative(data, fileMind) {
             try {
-                console.log('Received message from React Native:', message);
+                console.log('Received message from React Native:', data);
 
-                const newMindFileUrl = message.fileMind || null;
-                const receivedArtifacts = message.data; // Assuming message.data is the array of artifacts
+                const newMindFileUrl = fileMind || null;
+                const receivedArtifacts = data; // Assuming message.data is the array of artifacts
 
                 console.log('Extracted newMindFileUrl:', newMindFileUrl);
                 console.log('Extracted receivedArtifacts:', receivedArtifacts);
@@ -834,7 +834,6 @@
                 if (Array.isArray(receivedArtifacts)) {
                     console.log('receivedArtifacts length:', receivedArtifacts.length);
                 }
-
 
                 // Check if MindAR target file URL has changed
                 if (isARInitialized && newMindFileUrl && newMindFileUrl !== currentMindFileUrl) {
@@ -895,10 +894,10 @@
                 const message = JSON.parse(event.data);
                 // Pass the entire message object to receiveDataFromReactNative
                 if (message.type === 'ARTIFACT_DATA' && message.data) {
-                    receiveDataFromReactNative(message);
+                    receiveDataFromReactNative(message.data, message.fileMind);
                 } else if (message.type === 'SET_ARTIFACTS' && message.artifacts) {
                     // If SET_ARTIFACTS is still used, adapt it to the new structure
-                    receiveDataFromReactNative({ data: message.artifacts, fileMind: message.fileMind || null });
+                    receiveDataFromReactNative(message.artifacts, message.fileMind || null);
                 }
             } catch (error) {
                 // Attempt to parse direct data if it's not a structured message
@@ -907,7 +906,7 @@
                         const directData = JSON.parse(event.data);
                         if (Array.isArray(directData)) {
                             // If direct data is just an array, assume no fileMind and pass it as 'data'
-                            receiveDataFromReactNative({ data: directData, fileMind: null });
+                            receiveDataFromReactNative(directData, "");
                         }
                     } catch (e) {
                         console.error('Failed to parse direct data:', e);
