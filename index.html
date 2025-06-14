@@ -794,7 +794,7 @@
                 index: index, // This is the stt value
                 name: artifact.tenHienVat3D || artifact.hienVatObj?.tenHienVat || "Hiện vật 3D",
                 description: artifact.gioiThieu || artifact.hienVatObj?.mieuTa || "Mô tả hiện vật",
-                modelUrl: artifact.model3dPcJpg,
+                modelUrl: modelUrl,
                 audioUrl: audioUrl,
                 audioTitle: `Giới thiệu ${artifact.tenHienVat3D || 'hiện vật'}`,
                 dimensions: {
@@ -1293,8 +1293,8 @@
 
                 mindarThree = new MindARThree({
                     container: document.querySelector("#container"),
-                    // imageTargetSrc: globalFileMindUrl
-                    imageTargetSrc: 'https://fuukyqvnitlhdhwygfcy.supabase.co/storage/v1/object/public/qnail//demo.mind'
+                    imageTargetSrc: globalFileMindUrl
+                    // imageTargetSrc: 'https://fuukyqvnitlhdhwygfcy.supabase.co/storage/v1/object/public/qnail//demo.mind'
 
                 });
 
