@@ -780,8 +780,8 @@
 
         function parseArtifactToModelData(artifact, index) {
             let modelUrl = null;
-            if (artifact.model3dPcGlb) {
-                const glbLinks = artifact.model3dPcGlb.split(',');
+            if (artifact.model3dPcJpg) {
+                const glbLinks = artifact.model3dPcJpg.split(',');
                 modelUrl = glbLinks[0].trim(); // Take the first GLB URL
             }
 
@@ -794,7 +794,7 @@
                 index: index, // This is the stt value
                 name: artifact.tenHienVat3D || artifact.hienVatObj?.tenHienVat || "Hiện vật 3D",
                 description: artifact.gioiThieu || artifact.hienVatObj?.mieuTa || "Mô tả hiện vật",
-                modelUrl: modelUrl,
+                modelUrl: artifact.model3dPcJpg,
                 audioUrl: audioUrl,
                 audioTitle: `Giới thiệu ${artifact.tenHienVat3D || 'hiện vật'}`,
                 dimensions: {
@@ -1293,7 +1293,9 @@
 
                 mindarThree = new MindARThree({
                     container: document.querySelector("#container"),
-                    imageTargetSrc: globalFileMindUrl
+                    // imageTargetSrc: globalFileMindUrl
+                    imageTargetSrc: 'https://fuukyqvnitlhdhwygfcy.supabase.co/storage/v1/object/public/qnail//demo.mind'
+
                 });
 
                 const { renderer, scene, camera } = mindarThree;
